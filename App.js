@@ -541,7 +541,7 @@ class App extends Component {
                     borderRadius: 25,
                   }}
                   //onPress={() => this.uploadVideo()}
-                  onPress={() => this.mediaUpload(this.videoURI)}>
+                  onPress={() => this.mediaUpload(this.state.videoURI)}>
                   <View>
                     <Text style={styles.textStyle}>UPLOAD</Text>
                   </View>
