@@ -54,14 +54,17 @@ GoogleSignin.configure({
     'https://www.googleapis.com/auth/youtube.force-ssl',
   ],
   webClientId:
-    '914938236641-94a0qhj2mkhr42q17ba2ntchgn27te85.apps.googleusercontent.com',
+    '914938236641-94a0qhj2mkhr42q17ba2ntchgn27te85.apps.googleusercontent.com', //oath2 web client id
   offlineAccess: true,
   iosClientId:
-    '914938236641-m0i5tt3shosnuovqcviuf5ss0oet3v6g.apps.googleusercontent.com',
+    '914938236641-m0i5tt3shosnuovqcviuf5ss0oet3v6g.apps.googleusercontent.com', //oath2 ios id
+
+  // API KEY AIzaSyDdG7th-7xYRMFfuVpkvxjoqRdwpJ7NJYo - not sure if this needs to be used
 });
 
 class App extends Component {
   state = {
+    currentUser: {},
     videoURI: '',
     qr: '',
     openCamera: false,
@@ -83,6 +86,12 @@ class App extends Component {
     passedToken: '',
     userGoogleInfo: {},
     googleLoaded: false,
+  };
+
+  getCurrentUser = async () => {
+    const currentUser = await GoogleSignin.getCurrentUser();
+    this.setState({currentUser});
+    console.log(currentUser.user.givenName);
   };
 
   mediaUpload = (file) => {
@@ -237,6 +246,8 @@ class App extends Component {
   };
 
   openStart = () => {
+    this.getCurrentUser();
+    console.log('STARTSCREEN');
     this.setState({previewScreen: false});
     this.setState({rollScreen: false});
     this.setState({scannerScreen: false});
