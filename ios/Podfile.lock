@@ -270,6 +270,8 @@ PODS:
     - React-Core
   - react-native-document-picker (4.2.0):
     - React-Core
+  - react-native-mov-to-mp4 (0.2.2):
+    - React
   - react-native-video (5.1.1):
     - React-Core
     - react-native-video/Video (= 5.1.1)
@@ -394,6 +396,7 @@ DEPENDENCIES:
   - react-native-camera (from `../node_modules/react-native-camera`)
   - "react-native-cameraroll (from `../node_modules/@react-native-community/cameraroll`)"
   - react-native-document-picker (from `../node_modules/react-native-document-picker`)
+  - react-native-mov-to-mp4 (from `../node_modules/react-native-mov-to-mp4`)
   - react-native-video (from `../node_modules/react-native-video`)
   - react-native-webview (from `../node_modules/react-native-webview`)
   - React-RCTActionSheet (from `../node_modules/react-native/Libraries/ActionSheetIOS`)
@@ -473,6 +476,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-community/cameraroll"
   react-native-document-picker:
     :path: "../node_modules/react-native-document-picker"
+  react-native-mov-to-mp4:
+    :path: "../node_modules/react-native-mov-to-mp4"
   react-native-video:
     :path: "../node_modules/react-native-video"
   react-native-webview:
@@ -544,6 +549,7 @@ SPEC CHECKSUMS:
   react-native-camera: d145df27a9178041b48b839b80ad79c9ef373fbd
   react-native-cameraroll: 717193a0427fd0db78d3f10385a008fcc102213c
   react-native-document-picker: 47d2771fc553c60a9f2a7c4c4e6f14ec542b9603
+  react-native-mov-to-mp4: b63917cb6f96d4c264d8f5213db7961442dd4298
   react-native-video: 1574074179ecaf6a9dd067116c8f31bf9fec15c8
   react-native-webview: c010115ea45efd0d329ac7746d0cc59579d7860c
   React-RCTActionSheet: 89a0ca9f4a06c1f93c26067af074ccdce0f40336
