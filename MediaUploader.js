@@ -12,6 +12,7 @@ limitations under the License.
 */
 
 var DRIVE_UPLOAD_URL = 'https://www.googleapis.com/upload/drive/v2/files/';
+var API_KEY = 'AIzaSyDdG7th-7xYRMFfuVpkvxjoqRdwpJ7NJYo';
 
 
 /**
@@ -254,9 +255,13 @@ MediaUploader.prototype.onUploadError_ = function(e) {
  */
 MediaUploader.prototype.buildQuery_ = function(params) {
   params = params || {};
-  return Object.keys(params).map(function(key) {
-    return encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
-  }).join('&');
+  let queryParams = Object.keys(params)
+    .map(function(key) {
+      return encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
+    })
+    .join('&');
+  queryParams += `&key=${API_KEY}`;
+  return queryParams;
 };
 
 /**
