@@ -173,10 +173,14 @@ class App extends Component {
 
   takeVideo = async () => {
     const {isRecording} = this.state;
+    recordOptions = [
+      RNCamera.Constants.VideoQuality['480p'],
+      RNCamera.Constants.VideoCodec['H264'],
+    ];
     this.setState({captureAudio: true});
     if (this.camera && !isRecording) {
       try {
-        const promise = this.camera.recordAsync(this.state.recordOptions);
+        const promise = this.camera.recordAsync(recordOptions);
 
         if (promise) {
           this.setState({isRecording: true});
@@ -184,6 +188,9 @@ class App extends Component {
           //console.warn('takeVideo', data.uri);
           CameraRoll.save(data.uri);
           this.setState({videoURI: data.uri});
+          if (videoURI != '') {
+            console.log(videoURI);
+          }
         }
       } catch (e) {
         console.error(e);
