@@ -195,11 +195,12 @@ class App extends Component {
     try {
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
+      const tokens = await GoogleSignin.getTokens();
 
       this.setState({
         userGoogleInfo: userInfo,
         googleLoaded: true,
-        passedToken: GoogleSignin.getTokens(),
+        passedToken: tokens.accessToken,
         startScreen: true,
       });
     } catch (error) {
