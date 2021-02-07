@@ -175,9 +175,13 @@ class App extends Component {
   takeVideo = async () => {
     const {isRecording} = this.state;
     this.setState({captureAudio: true});
+    const options = {
+      quality: RNCamera.Constants.VideoQuality['480p'],
+      codec: RNCamera.Constants.VideoCodec['H264']
+    }
     if (this.camera && !isRecording) {
       try {
-        const promise = this.camera.recordAsync(this.state.recordOptions);
+        const promise = this.camera.recordAsync(options);
 
         if (promise) {
           this.setState({isRecording: true});
