@@ -1,4 +1,6 @@
-var DRIVE_UPLOAD_URL = 'https://www.googleapis.com/upload/drive/v2/files/';
+// DRIVE UPLOAD URL SHOULD POINT THE THE TEST CHANNEL
+var DRIVE_UPLOAD_URL =
+  'https://api.video.ibm.com/channels/bHCdjAHtkxd/uploads.json?type=videoupload-ftp';
 var API_KEY = 'AIzaSyDdG7th-7xYRMFfuVpkvxjoqRdwpJ7NJYo';
 
 /**
@@ -77,7 +79,7 @@ RetryHandler.prototype.getRandomInt_ = function (min, max) {
  * @param {function} [options.onProgress] Callback for status for the in-progress upload
  * @param {function} [options.onError] Callback if upload fails
  */
-var MediaUploader = function (options) {
+var VideoUploader = function (options) {
   var noop = function () {};
   this.file = options.file;
   this.contentType =
@@ -106,7 +108,7 @@ var MediaUploader = function (options) {
 /**
  * Initiate the upload.
  */
-MediaUploader.prototype.upload = function () {
+VideoUploader.prototype.upload = function () {
   var self = this;
   var xhr = new XMLHttpRequest();
 
@@ -134,7 +136,7 @@ MediaUploader.prototype.upload = function () {
  *
  * @private
  */
-MediaUploader.prototype.sendFile_ = function () {
+VideoUploader.prototype.sendFile_ = function () {
   var content = this.file;
   var end = this.file.size;
 
@@ -175,7 +177,7 @@ MediaUploader.prototype.sendFile_ = function () {
  *
  * @private
  */
-MediaUploader.prototype.resume_ = function () {
+VideoUploader.prototype.resume_ = function () {
   console.log('2');
   var xhr = new XMLHttpRequest();
   xhr.open('PUT', this.url, true);
@@ -195,7 +197,7 @@ MediaUploader.prototype.resume_ = function () {
  *
  * @param {XMLHttpRequest} xhr Request object
  */
-MediaUploader.prototype.extractRange_ = function (xhr) {
+VideoUploader.prototype.extractRange_ = function (xhr) {
   var range = xhr.getResponseHeader('Range');
   if (range) {
     this.offset = parseInt(range.match(/\d+/g).pop(), 10) + 1;
@@ -210,7 +212,7 @@ MediaUploader.prototype.extractRange_ = function (xhr) {
  * @private
  * @param {object} e XHR event
  */
-MediaUploader.prototype.onContentUploadSuccess_ = function (e) {
+VideoUploader.prototype.onContentUploadSuccess_ = function (e) {
   console.log('shit is uploaded');
   console.log('success call', e.target);
   if (e.target.status == 200 || e.target.status == 201) {
@@ -229,7 +231,7 @@ MediaUploader.prototype.onContentUploadSuccess_ = function (e) {
  * @private
  * @param {object} e XHR event
  */
-MediaUploader.prototype.onContentUploadError_ = function (e) {
+VideoUploader.prototype.onContentUploadError_ = function (e) {
   if (e.target.status && e.target.status < 500) {
     this.onError(e.target.response);
   } else {
@@ -243,7 +245,7 @@ MediaUploader.prototype.onContentUploadError_ = function (e) {
  * @private
  * @param {object} e XHR event
  */
-MediaUploader.prototype.onUploadError_ = function (e) {
+VideoUploader.prototype.onUploadError_ = function (e) {
   this.onError(e.target.response); // TODO - Retries for initial upload
 };
 
@@ -254,7 +256,7 @@ MediaUploader.prototype.onUploadError_ = function (e) {
  * @param {object} [params] Key/value pairs for query string
  * @return {string} query string
  */
-MediaUploader.prototype.buildQuery_ = function (params) {
+VideoUploader.prototype.buildQuery_ = function (params) {
   params = params || {};
   let queryParams = Object.keys(params)
     .map(function (key) {
@@ -273,7 +275,7 @@ MediaUploader.prototype.buildQuery_ = function (params) {
  * @param {object} [params] Query parameters
  * @return {string} URL
  */
-MediaUploader.prototype.buildUrl_ = function (id, params, baseUrl) {
+VideoUploader.prototype.buildUrl_ = function (id, params, baseUrl) {
   var url = baseUrl || DRIVE_UPLOAD_URL;
   if (id) {
     url += id;
@@ -285,4 +287,4 @@ MediaUploader.prototype.buildUrl_ = function (id, params, baseUrl) {
   return url;
 };
 
-export default MediaUploader;
+export default VideoUploader;

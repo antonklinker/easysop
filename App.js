@@ -9,6 +9,8 @@
 import React, {Component} from 'react';
 import MediaUploader from './MediaUploader';
 
+import VideoUploader from './VideoUploader';
+
 import {
   SafeAreaView,
   StyleSheet,
@@ -70,7 +72,7 @@ class App extends Component {
     qr: '',
     openCamera: false,
     ViewMode: false,
-    startScreen: false,
+    startScreen: true,
     scannerScreen: false,
     recordScreen: false,
     webScreen: false,
@@ -86,7 +88,7 @@ class App extends Component {
 
     passedToken: '',
     userGoogleInfo: {},
-    googleLoaded: false,
+    googleLoaded: true,
   };
 
   getCurrentUser = async () => {
@@ -95,19 +97,60 @@ class App extends Component {
     console.log(currentUser.user.givenName);
   };
 
-  mediaUpload = (file) => {
+  /*mediaUpload = (file) => {
     var metadata = {
       snippet: {
-        title: 'Testing video upload',
+        title: 'Nyeste video',
         description: 'A random video',
         categoryId: 22,
       },
       status: {
-        privacyStatus: 'private',
+        privacyStatus: 'public',
+        embeddable: true,
+        license: 'youtube',
+      },
+    };*/
+
+  mediaUpload = (file) => {
+    var metadata = {
+      snippet: {
+        title: 'Nyeste video',
+        description: 'A random video',
+        categoryId: 22,
+      },
+      status: {
+        privacyStatus: 'public',
         embeddable: true,
         license: 'youtube',
       },
     };
+
+    var uploader = new VideoUploader({
+      baseUrl: 'https://www.googleapis.com/upload/youtube/v3/videos',
+      file: file,
+      token: this.state.passedToken,
+      metadata: metadata,
+      id: 0,
+      params: {
+        part: Object.keys(metadata).join(','),
+      },
+      onError: function (data) {
+        console.log('error', data);
+        // onError code
+      }.bind(this),
+      onProgress: function (data) {
+        console.log('Progress', data);
+        // onProgress code
+      }.bind(this),
+      onComplete: function (data) {
+        console.log('Complete', data);
+        // onComplete code
+      }.bind(this),
+    });
+    uploader.upload();
+    //uploader.sendFile_();
+  };
+  /*
     var uploader = new MediaUploader({
       baseUrl: 'https://www.googleapis.com/upload/youtube/v3/videos',
       file: file,
@@ -131,7 +174,9 @@ class App extends Component {
       }.bind(this),
     });
     uploader.upload();
+    //uploader.sendFile_();
   };
+  */
 
   uploadVideo = () => {
     mediaUpload(this.state.videoURI);
@@ -177,8 +222,8 @@ class App extends Component {
     this.setState({captureAudio: true});
     const options = {
       quality: RNCamera.Constants.VideoQuality['480p'],
-      codec: RNCamera.Constants.VideoCodec['H264']
-    }
+      codec: RNCamera.Constants.VideoCodec['H264'],
+    };
     if (this.camera && !isRecording) {
       try {
         const promise = this.camera.recordAsync(options);
@@ -329,10 +374,8 @@ class App extends Component {
           ) : null}
           {this.state.startScreen ? (
             <View style={{height: '100%', width: '100%', alignItems: 'center'}}>
-              <Image
-                source={require('./image/easysoplogo.jpg')}
-                style={{height: '15%', width: '75%', borderRadius: 20}}
-              />
+              <View style={{height: '3%'}}></View>
+              <Text style={styles.logoSOP}>SOPSimple</Text>
 
               <View style={{height: '15%'}}></View>
               <View style={styles.buttonPlacement}>
@@ -611,7 +654,7 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'black',
+    backgroundColor: 'steelblue',
   },
 
   buttonPlacement: {
@@ -628,7 +671,7 @@ const styles = StyleSheet.create({
     height: '45%',
     width: '70%',
     borderRadius: 30,
-    backgroundColor: 'lightgrey',
+    backgroundColor: 'darkgray',
   },
 
   scannerButtons: {
@@ -655,10 +698,28 @@ const styles = StyleSheet.create({
   },
 
   textStyle: {
+    color: 'black',
     justifyContent: 'center',
     alignItems: 'center',
     fontFamily: 'AvenirNext-DemiBold',
     fontSize: 30,
+  },
+
+  logoSOP: {
+    color: 'black',
+    justifyContent: 'center',
+    alignItems: 'center',
+    fontFamily: 'AvenirNext-DemiBold',
+    fontSize: 60,
+    textDecorationLine: 'underline',
+  },
+
+  logoSimple: {
+    color: 'blue',
+    justifyContent: 'center',
+    alignItems: 'center',
+    fontFamily: 'AvenirNext-DemiBold',
+    fontSize: 40,
   },
 
   outerRecordingButton: {

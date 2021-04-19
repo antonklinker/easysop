@@ -15,6 +15,8 @@ target 'qrcodetest' do
 
   pod 'GoogleSignIn', '~> 5.0.2'
 
+  pod 'VimeoUpload'
+
   target 'qrcodetestTests' do
     inherit! :complete
     # Pods for testing
