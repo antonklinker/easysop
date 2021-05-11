@@ -7,9 +7,6 @@
  */
 
 import React, {Component} from 'react';
-import MediaUploader from './MediaUploader';
-
-import VideoUploader from './VideoUploader';
 
 import {
   SafeAreaView,
@@ -22,6 +19,7 @@ import {
   Button,
   Vibration,
   Image,
+  TextInput,
 } from 'react-native';
 
 import {
@@ -46,140 +44,34 @@ import {WebView} from 'react-native-webview';
 import CameraRoll from '@react-native-community/cameraroll';
 import VideoRecorder from 'react-native-beautiful-video-recorder';
 import Video from 'react-native-video';
-
-GoogleSignin.configure({
-  scopes: [
-    'https://www.googleapis.com/auth/drive.readonly',
-    'https://www.googleapis.com/auth/youtube',
-    'https://www.googleapis.com/auth/youtube.upload',
-    'https://www.googleapis.com/auth/plus.login',
-    'https://www.googleapis.com/auth/youtubepartner',
-    'https://www.googleapis.com/auth/youtube.force-ssl',
-  ],
-  webClientId:
-    '914938236641-94a0qhj2mkhr42q17ba2ntchgn27te85.apps.googleusercontent.com', //oath2 web client id
-  offlineAccess: true,
-  iosClientId:
-    '914938236641-m0i5tt3shosnuovqcviuf5ss0oet3v6g.apps.googleusercontent.com', //oath2 ios id
-
-  // API KEY AIzaSyDdG7th-7xYRMFfuVpkvxjoqRdwpJ7NJYo - not sure if this needs to be used
-});
+import ViewShot from 'react-native-view-shot';
 
 class App extends Component {
   state = {
-    currentUser: {},
     videoURI: '',
     qr: '',
     openCamera: false,
     ViewMode: false,
+    selectScreen: false,
     startScreen: true,
     scannerScreen: false,
     recordScreen: false,
     webScreen: false,
     previewScreen: false,
     rollScreen: false,
+    messageScreen: false,
     recording: false,
     captureAudio: true,
+    qrScreen: false,
 
     isRecording: false,
 
     cameraType: 'back',
     mirrorMode: false,
-
-    passedToken: '',
-    userGoogleInfo: {},
-    googleLoaded: true,
   };
 
-  getCurrentUser = async () => {
-    const currentUser = await GoogleSignin.getCurrentUser();
-    this.setState({currentUser});
-    console.log(currentUser.user.givenName);
-  };
-
-  /*mediaUpload = (file) => {
-    var metadata = {
-      snippet: {
-        title: 'Nyeste video',
-        description: 'A random video',
-        categoryId: 22,
-      },
-      status: {
-        privacyStatus: 'public',
-        embeddable: true,
-        license: 'youtube',
-      },
-    };*/
-
-  mediaUpload = (file) => {
-    var metadata = {
-      snippet: {
-        title: 'Nyeste video',
-        description: 'A random video',
-        categoryId: 22,
-      },
-      status: {
-        privacyStatus: 'public',
-        embeddable: true,
-        license: 'youtube',
-      },
-    };
-
-    var uploader = new VideoUploader({
-      baseUrl: 'https://www.googleapis.com/upload/youtube/v3/videos',
-      file: file,
-      token: this.state.passedToken,
-      metadata: metadata,
-      id: 0,
-      params: {
-        part: Object.keys(metadata).join(','),
-      },
-      onError: function (data) {
-        console.log('error', data);
-        // onError code
-      }.bind(this),
-      onProgress: function (data) {
-        console.log('Progress', data);
-        // onProgress code
-      }.bind(this),
-      onComplete: function (data) {
-        console.log('Complete', data);
-        // onComplete code
-      }.bind(this),
-    });
-    uploader.upload();
-    //uploader.sendFile_();
-  };
-  /*
-    var uploader = new MediaUploader({
-      baseUrl: 'https://www.googleapis.com/upload/youtube/v3/videos',
-      file: file,
-      token: this.state.passedToken,
-      metadata: metadata,
-      id: 0,
-      params: {
-        part: Object.keys(metadata).join(','),
-      },
-      onError: function (data) {
-        console.log('error', data);
-        // onError code
-      }.bind(this),
-      onProgress: function (data) {
-        console.log('Progress', data);
-        // onProgress code
-      }.bind(this),
-      onComplete: function (data) {
-        console.log('Complete', data);
-        // onComplete code
-      }.bind(this),
-    });
-    uploader.upload();
-    //uploader.sendFile_();
-  };
-  */
-
-  uploadVideo = () => {
-    mediaUpload(this.state.videoURI);
+  textInput = () => {
+    const [text, onChangeText] = React.useState('some text');
   };
 
   loadRolls = () => {
@@ -209,14 +101,6 @@ class App extends Component {
     }
   };
 
-  /*record = async () => {
-    if (this.camera) {
-      const options = {quality: 0.5, base64: true};
-      const data = await this.camera.recordAsync(options);
-      console.log(data.uri);
-    }
-  };*/
-
   takeVideo = async () => {
     const {isRecording} = this.state;
     this.setState({captureAudio: true});
@@ -234,28 +118,12 @@ class App extends Component {
           //console.warn('takeVideo', data.uri);
           CameraRoll.save(data.uri);
           this.setState({videoURI: data.uri});
+          this.setState({qr: data.uri});
           console.log(this.state.videoURI);
         }
       } catch (e) {
         console.error(e);
       }
-    }
-  };
-
-  signIn = async () => {
-    try {
-      await GoogleSignin.hasPlayServices();
-      const userInfo = await GoogleSignin.signIn();
-      const tokens = await GoogleSignin.getTokens();
-
-      this.setState({
-        userGoogleInfo: userInfo,
-        googleLoaded: true,
-        passedToken: tokens.accessToken,
-        startScreen: true,
-      });
-    } catch (error) {
-      console.log(error.message);
     }
   };
 
@@ -270,17 +138,49 @@ class App extends Component {
     this.setState({recording: e});
   };
 
+  openSelect = () => {
+    this.setState({selectScreen: true});
+    this.setState({startScreen: false});
+    this.setState({previewScreen: false});
+    this.setState({rollScreen: false});
+    this.setState({messageScreen: false});
+    this.setState({scannerScreen: false});
+    this.setState({recordScreen: false});
+    this.setState({webScreen: false});
+    this.setState({startScreen: false});
+    this.setState({qrScreen: false});
+  };
+
+  openQR = () => {
+    this.setState({qrScreen: true});
+    this.setState({selectScreen: false});
+    this.setState({startScreen: false});
+    this.setState({previewScreen: false});
+    this.setState({rollScreen: false});
+    this.setState({messageScreen: false});
+    this.setState({scannerScreen: false});
+    this.setState({recordScreen: false});
+    this.setState({webScreen: false});
+    this.setState({startScreen: false});
+  };
+
   openPreview = () => {
+    this.setState({qrScreen: false});
+    this.setState({selectScreen: false});
     this.setState({startScreen: false});
     this.setState({recordScreen: false});
     this.setState({webScreen: false});
     this.setState({scannerScreen: false});
     this.setState({rollScreen: false});
+    this.setState({messageScreen: false});
     this.setState({previewScreen: true});
   };
 
   openRoll = () => {
+    this.setState({qrScreen: false});
+    this.setState({selectScreen: false});
     this.setState({previewScreen: false});
+    this.setState({messageScreen: false});
     this.setState({startScreen: false});
     this.setState({recordScreen: false});
     this.setState({webScreen: false});
@@ -289,8 +189,11 @@ class App extends Component {
   };
 
   openScanner = () => {
+    this.setState({qrScreen: false});
+    this.setState({selectScreen: false});
     this.setState({previewScreen: false});
     this.setState({rollScreen: false});
+    this.setState({messageScreen: false});
     this.setState({startScreen: false});
     this.setState({recordScreen: false});
     this.setState({webScreen: false});
@@ -298,20 +201,36 @@ class App extends Component {
   };
 
   openStart = () => {
-    this.getCurrentUser();
-    console.log('STARTSCREEN');
+    this.setState({qrScreen: false});
+    this.setState({selectScreen: false});
     this.setState({previewScreen: false});
     this.setState({rollScreen: false});
+    this.setState({messageScreen: false});
     this.setState({scannerScreen: false});
     this.setState({recordScreen: false});
     this.setState({webScreen: false});
     this.setState({startScreen: true});
   };
 
-  openRecord = () => {
-    this.setState({videoURI: ''});
+  openMessages = () => {
+    this.setState({qrScreen: false});
+    this.setState({selectScreen: false});
     this.setState({previewScreen: false});
     this.setState({rollScreen: false});
+    this.setState({scannerScreen: false});
+    this.setState({recordScreen: false});
+    this.setState({webScreen: false});
+    this.setState({startScreen: false});
+    this.setState({messageScreen: true});
+  };
+
+  openRecord = () => {
+    this.setState({qrScreen: false});
+    this.setState({videoURI: ''});
+    this.setState({selectScreen: false});
+    this.setState({previewScreen: false});
+    this.setState({rollScreen: false});
+    this.setState({messageScreen: false});
     this.setState({startScreen: false});
     this.setState({scannerScreen: false});
     this.setState({webScreen: false});
@@ -319,8 +238,11 @@ class App extends Component {
   };
 
   openWeb = () => {
+    this.setState({qrScreen: false});
+    this.setState({selectScreen: false});
     this.setState({previewScreen: false});
     this.setState({rollScreen: false});
+    this.setState({messageScreen: false});
     this.setState({startScreen: false});
     this.setState({recordScreen: false});
     this.setState({scannerScreen: false});
@@ -328,11 +250,13 @@ class App extends Component {
   };
 
   onRead = (e) => {
+    this.setState({qrScreen: false});
+    this.setState({selectScreen: false});
     this.setState({previewScreen: false});
     this.setState({qr: e.data});
     this.setState({ViewMode: true});
-
     this.setState({rollScreen: false});
+    this.setState({messageScreen: false});
     this.setState({startScreen: false});
     this.setState({recordScreen: false});
     this.setState({scannerScreen: false});
@@ -347,37 +271,77 @@ class App extends Component {
     this.setState({ViewMode: false});
   };
 
+  /*saveScreenshot = () => {
+    this.refs.viewShot.capture().then((uri) => {
+      RNFS.readFile(uri, 'base64').then((res) => {
+        let urlString = 'data:image/jpeg;base64,' + res;
+        let options = {
+          title: 'Share Title',
+          message: 'Share Message',
+          url: urlString,
+          type: 'image/jpeg',
+        };
+        Share.open(options)
+          .then((res) => {
+            console.log(res);
+          })
+          .catch((err) => {
+            err && console.log(err);
+          });
+      });
+    });
+  };*/
+
   render() {
     return (
       <>
         <StatusBar barStyle="dark-content" />
         <SafeAreaView style={styles.wholeScreen}>
-          {!this.state.googleLoaded ? (
-            <View style={{height: '100%', width: '100%', alignItems: 'center'}}>
-              <Image
-                source={require('./image/easysoplogo.jpg')}
-                style={{height: '15%', width: '75%', borderRadius: 20}}
-              />
+          {this.state.selectScreen ? (
+            <View
+              style={{height: '100%', width: '100%', alignItems: 'flex-start'}}>
+              <View style={styles.leftBar}>
+                <TouchableOpacity style={styles.leftBarLogos}>
+                  <View style={{flex: 1}}></View>
+                </TouchableOpacity>
 
-              <View style={{height: '12%'}}></View>
-              <Text style={{color: 'white', fontFamily: 'AvenirNext-DemiBold'}}>
-                Sign in with your Google account to upload videos
-              </Text>
-              <View style={{height: '5%'}}></View>
-              <GoogleSigninButton
-                onPress={this.signIn}
-                size={GoogleSigninButton.Size.Wide}
-                color={GoogleSigninButton.Color.Dark}
-                style={{width: '55%', height: 48}}
-              />
+                <View style={{height: '17%'}}></View>
+
+                <TouchableOpacity style={styles.leftBarLogos}>
+                  <View style={{flex: 1}}></View>
+                </TouchableOpacity>
+
+                <View style={{height: '17%'}}></View>
+
+                <TouchableOpacity style={styles.leftBarLogos}>
+                  <View style={{flex: 1}}></View>
+                </TouchableOpacity>
+
+                <View style={{height: '17%'}}></View>
+
+                <TouchableOpacity style={styles.leftBarLogos}>
+                  <View style={{flex: 1}}></View>
+                </TouchableOpacity>
+              </View>
             </View>
           ) : null}
           {this.state.startScreen ? (
             <View style={{height: '100%', width: '100%', alignItems: 'center'}}>
               <View style={{height: '3%'}}></View>
-              <Text style={styles.logoSOP}>SOPSimple</Text>
+
+              <View
+                style={{
+                  height: '10%',
+                  width: '85%',
+                  backgroundColor: 'white',
+                  alignItems: 'center',
+                  borderRadius: 5,
+                }}>
+                <Text style={styles.logoSOP}>SopSimple</Text>
+              </View>
 
               <View style={{height: '15%'}}></View>
+
               <View style={styles.buttonPlacement}>
                 <TouchableOpacity
                   style={styles.startButtons}
@@ -385,19 +349,59 @@ class App extends Component {
                     this.openScanner();
                     //Vibration.vibrate();
                   }}>
-                  <View>
-                    <Text style={styles.textStyle}>SCANNER</Text>
-                  </View>
+                  <View style={{height: '22%'}}></View>
+                  <Image
+                    source={require('./image/qrcodelogo.png')}
+                    style={{
+                      maxWidth: '80%',
+                      maxHeight: '80%',
+                    }}
+                  />
                 </TouchableOpacity>
 
-                <View style={{height: '10%'}} />
+                <View style={{width: '10%'}} />
 
                 <TouchableOpacity
                   style={styles.startButtons}
                   onPress={() => this.openRecord()}>
-                  <View style={styles.startButtons}>
-                    <Text style={styles.textStyle}>RECORD</Text>
-                  </View>
+                  <View style={{height: '21%'}}></View>
+                  <Image
+                    source={require('./image/recordlogo.png')}
+                    style={{
+                      maxWidth: '80%',
+                      maxHeight: '80%',
+                    }}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.buttonPlacement}>
+                <TouchableOpacity
+                  style={styles.startButtons}
+                  onPress={() => {
+                    this.openMessages();
+                    //Vibration.vibrate();
+                  }}>
+                  <View style={{height: '29%'}}></View>
+                  <Image
+                    source={require('./image/messagelogo.png')}
+                    style={{maxWidth: '80%', maxHeight: '80%'}}
+                  />
+                </TouchableOpacity>
+
+                <View style={{width: '10%'}} />
+
+                <TouchableOpacity
+                  style={styles.startButtons}
+                  onPress={() => {
+                    this.openRoll();
+                    //Vibration.vibrate();
+                  }}>
+                  <View style={{height: '29%'}}></View>
+                  <Image
+                    source={require('./image/camerarolllogo.png')}
+                    style={{maxWidth: '90%', maxHeight: '90%'}}
+                  />
                 </TouchableOpacity>
               </View>
             </View>
@@ -435,7 +439,18 @@ class App extends Component {
                 height: '100%',
                 width: '100%',
               }}>
-              <WebView source={{uri: this.state.qr}}></WebView>
+              <Video
+                source={{uri: this.state.qr}} // Can be a URL or a local file.
+                ref={(ref) => {
+                  this.player = ref;
+                }} // Store reference
+                onBuffer={this.onBuffer} // Callback when remote video is buffering
+                onError={this.videoError} // Callback when video cannot be loaded
+                style={{
+                  height: '70%',
+                  width: '100%',
+                }}
+              />
 
               <View
                 style={{
@@ -504,7 +519,7 @@ class App extends Component {
                     height: '39%',
                     width: '25%',
                     borderRadius: 25,
-                    backgroundColor: 'lightgrey',
+                    backgroundColor: 'white',
                     justifyContent: 'center',
                     alignItems: 'center',
                   }}
@@ -529,7 +544,7 @@ class App extends Component {
                     height: '39%',
                     width: '25%',
                     borderRadius: 25,
-                    backgroundColor: 'lightgrey',
+                    backgroundColor: 'white',
                     justifyContent: 'center',
                     alignItems: 'center',
                   }}
@@ -578,7 +593,7 @@ class App extends Component {
                     marginTop: '8%',
                     height: '80%',
                     width: '40%',
-                    backgroundColor: 'lightgrey',
+                    backgroundColor: 'white',
                     justifyContent: 'center',
                     alignItems: 'center',
                     borderRadius: 25,
@@ -596,17 +611,50 @@ class App extends Component {
                     marginTop: '8%',
                     height: '80%',
                     width: '40%',
-                    backgroundColor: 'lightgrey',
+                    backgroundColor: 'white',
                     justifyContent: 'center',
                     alignItems: 'center',
                     borderRadius: 25,
                   }}
-                  //onPress={() => this.uploadVideo()}
-                  onPress={() => this.mediaUpload(this.state.videoURI)}>
+                  onPress={() => this.openQR()}>
                   <View>
-                    <Text style={styles.textStyle}>UPLOAD</Text>
+                    <Text style={styles.textStyle}>GET QR-CODE</Text>
                   </View>
                 </TouchableOpacity>
+
+                <View style={{width: '20%'}}></View>
+              </View>
+            </View>
+          ) : null}
+
+          {this.state.messageScreen ? (
+            <View
+              style={{
+                width: '100%',
+                height: '100%',
+                justifyContent: 'flex-start',
+                alignItems: 'center',
+              }}>
+              <View
+                style={{
+                  width: '90%',
+                  height: '70%',
+                  backgroundColor: 'white',
+                  borderRadius: 10,
+                  justifyContent: 'flex-end',
+                }}>
+                <View
+                  style={{
+                    height: '12%',
+                    width: '100%',
+                    backgroundColor: 'rgb(50, 120, 255)',
+                  }}>
+                  <TextInput
+                    style={styles.input}
+                    onChangeText={this.onChangeText}
+                    value={this.text}
+                  />
+                </View>
               </View>
             </View>
           ) : null}
@@ -630,13 +678,36 @@ class App extends Component {
               />
             </View>
           ) : null}
+
+          {this.state.qrScreen ? (
+            <View
+              style={{
+                width: '100%',
+                height: '100%',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}>
+              <ViewShot
+                style={styles.container}
+                ref="viewShot"
+                options={{format: 'jpg', quality: 0.9}}>
+                <QRCode value={this.state.qr} size={300} />
+              </ViewShot>
+              <View>
+                <Button
+                  style={styles.label}
+                  title="Save"
+                  onPress={this.saveScreenshot}
+                />
+              </View>
+            </View>
+          ) : null}
         </SafeAreaView>
       </>
     );
   }
 }
-
-/* QR CODE GENERATOR
+/*
 {this.state.qr ? <QRCode value={this.state.qr} /> : null}
         {this.state.qr ? (
           <Button title="Open link" onPress={() => console.log('sd')}></Button>
@@ -644,34 +715,58 @@ class App extends Component {
 
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>{this.state.qr}</Text>
-        </View>
-*/
+        </View> */
 
 const styles = StyleSheet.create({
+  input: {
+    height: 40,
+    margin: 12,
+    borderWidth: 1,
+    width: '80%',
+  },
+
   wholeScreen: {
     height: '100%',
     flex: 1,
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'steelblue',
+    backgroundColor: 'rgb(15, 42, 80)',
+  },
+
+  leftBar: {
+    height: '100%',
+    width: '8%',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+    backgroundColor: 'rgb(5, 32, 60)',
+    borderRadius: 5,
+  },
+
+  leftBarLogos: {
+    backgroundColor: 'rgb(25, 60, 120)',
+    width: '83%',
+    height: '10%',
+    borderRadius: 100,
   },
 
   buttonPlacement: {
-    height: '40%',
-    width: '100%',
-    flexDirection: 'column',
+    height: '22%',
+    width: '80%',
+    flexDirection: 'row',
     justifyContent: 'flex-start',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
 
   startButtons: {
     justifyContent: 'center',
     alignItems: 'center',
-    height: '45%',
-    width: '70%',
+    height: '81%',
+    width: '45%',
     borderRadius: 30,
-    backgroundColor: 'darkgray',
+    backgroundColor: 'white',
   },
 
   scannerButtons: {
@@ -680,7 +775,7 @@ const styles = StyleSheet.create({
     height: '50%',
     width: '40%',
     borderRadius: 30,
-    backgroundColor: 'lightgrey',
+    backgroundColor: 'white',
   },
 
   cameraScreen: {
@@ -694,11 +789,11 @@ const styles = StyleSheet.create({
     height: '45%',
     width: '100%',
     borderRadius: 30,
-    backgroundColor: 'lightgrey',
+    backgroundColor: 'white',
   },
 
   textStyle: {
-    color: 'black',
+    color: 'rgb(15, 42, 80)',
     justifyContent: 'center',
     alignItems: 'center',
     fontFamily: 'AvenirNext-DemiBold',
@@ -706,12 +801,11 @@ const styles = StyleSheet.create({
   },
 
   logoSOP: {
-    color: 'black',
+    color: 'rgb(15, 42, 80)',
     justifyContent: 'center',
     alignItems: 'center',
-    fontFamily: 'AvenirNext-DemiBold',
+    fontFamily: 'Avenir-Heavy',
     fontSize: 60,
-    textDecorationLine: 'underline',
   },
 
   logoSimple: {
@@ -728,7 +822,7 @@ const styles = StyleSheet.create({
     height: 110,
     width: 110,
     borderRadius: 55,
-    backgroundColor: 'lightgrey',
+    backgroundColor: 'white',
   },
 
   recordingCircle: {

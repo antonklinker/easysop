@@ -277,6 +277,8 @@ PODS:
     - react-native-video/Video (= 5.1.1)
   - react-native-video/Video (5.1.1):
     - React-Core
+  - react-native-view-shot (3.1.2):
+    - React
   - react-native-webview (11.2.0):
     - React-Core
   - React-RCTActionSheet (0.63.4):
@@ -398,6 +400,7 @@ DEPENDENCIES:
   - react-native-document-picker (from `../node_modules/react-native-document-picker`)
   - react-native-mov-to-mp4 (from `../node_modules/react-native-mov-to-mp4`)
   - react-native-video (from `../node_modules/react-native-video`)
+  - react-native-view-shot (from `../node_modules/react-native-view-shot`)
   - react-native-webview (from `../node_modules/react-native-webview`)
   - React-RCTActionSheet (from `../node_modules/react-native/Libraries/ActionSheetIOS`)
   - React-RCTAnimation (from `../node_modules/react-native/Libraries/NativeAnimation`)
@@ -480,6 +483,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-mov-to-mp4"
   react-native-video:
     :path: "../node_modules/react-native-video"
+  react-native-view-shot:
+    :path: "../node_modules/react-native-view-shot"
   react-native-webview:
     :path: "../node_modules/react-native-webview"
   React-RCTActionSheet:
@@ -551,6 +556,7 @@ SPEC CHECKSUMS:
   react-native-document-picker: 47d2771fc553c60a9f2a7c4c4e6f14ec542b9603
   react-native-mov-to-mp4: b63917cb6f96d4c264d8f5213db7961442dd4298
   react-native-video: 1574074179ecaf6a9dd067116c8f31bf9fec15c8
+  react-native-view-shot: 08c46c9e8e92f6681e8f2ffa55ac3d06e7e99070
   react-native-webview: c010115ea45efd0d329ac7746d0cc59579d7860c
   React-RCTActionSheet: 89a0ca9f4a06c1f93c26067af074ccdce0f40336
   React-RCTAnimation: 1bde3ecc0c104c55df246eda516e0deb03c4e49b
@@ -570,6 +576,6 @@ SPEC CHECKSUMS:
   YogaKit: f782866e155069a2cca2517aafea43200b01fd5a
   YoutubePlayer-in-WKWebView: cfbf46da51d7370662a695a8f351e5fa1d3e1008
 
-PODFILE CHECKSUM: 31f5d11df61fcdcf13b2890abb732e5bd47e2368
+PODFILE CHECKSUM: 6af1499f27dbafd1547b2f8ac621a2efb270558a
 
 COCOAPODS: 1.10.1
