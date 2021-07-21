@@ -20,7 +20,11 @@ import {
   Vibration,
   Image,
   TextInput,
+  TouchableHighlightBase,
+  Alert,
 } from 'react-native';
+
+import ImagePicker from 'react-native-image-crop-picker';
 
 import {
   GoogleSignin,
@@ -45,11 +49,14 @@ import CameraRoll from '@react-native-community/cameraroll';
 import VideoRecorder from 'react-native-beautiful-video-recorder';
 import Video from 'react-native-video';
 import ViewShot from 'react-native-view-shot';
+import {useRef} from 'react';
+
+import RNPrint from 'react-native-print';
 
 class App extends Component {
   state = {
     videoURI: '',
-    qr: '',
+    qr: 'www.sopsimple.com',
     openCamera: false,
     ViewMode: false,
     selectScreen: false,
@@ -63,8 +70,25 @@ class App extends Component {
     recording: false,
     captureAudio: true,
     qrScreen: false,
+    previewScreenFromRoll: false,
+    videoTitle: '',
+    videoDescription: '',
+
+    scanResponse: '',
+
+    token: '',
+
+    bearerToken: 'Bearer ',
+
+    qrcodeuri: '',
+
+    qrcodehtml: '',
+
+    selectedPicuture: '',
 
     isRecording: false,
+
+    currentSelectedPrinter: null,
 
     cameraType: 'back',
     mirrorMode: false,
@@ -101,11 +125,117 @@ class App extends Component {
     }
   };
 
+  choosePrinter = async () => {
+    const currentSelectedPrinter = await RNPrint.selectPrinter({
+      x: 100,
+      y: 100,
+    });
+    this.setState({currentSelectedPrinter});
+    if (this.state.currentSelectedPrinter != null) {
+      this.silentPrint();
+    }
+  };
+
+  silentPrint = async () => {
+    if (!this.state.currentSelectedPrinter) {
+      alert('Must Select Printer First');
+    }
+    //console.log(this.state.selectedPicture);
+    const jobName = await RNPrint.print({
+      printerURL: this.state.currentSelectedPrinter.url,
+      filePath: this.state.selectedPicture,
+    });
+  };
+
+  choosePhotoFromLibrary = () => {
+    ImagePicker.openPicker({
+      width: 500,
+      height: 500,
+      cropping: true,
+      //writeTempFile: true,
+    }).then((image) => {
+      //console.log(image);
+      this.state.selectedPicture = image.path;
+      //console.log(this.state.selectedPicture);
+      this.openRoll();
+    });
+  };
+
+  chooseVideoFromLibrary = () => {
+    ImagePicker.openPicker({
+      mediaType: 'video',
+    }).then((video) => {
+      //console.log(video);
+      this.state.videoURI = video.path;
+      this.state.qr = video.path;
+      this.openPreviewFromRoll();
+    });
+  };
+
+  onCapture = (uri) => {
+    CameraRoll.save(uri);
+    /*this.state.qrcodeuri = uri;
+    const temphtml = String(
+      '<img height="100" width="100" src="' +
+        this.state.selectedPicuture +
+        '"> </img>',
+    );*/
+    //console.log(temphtml);
+    //this.state.qrcodehtml = temphtml;
+    this.state.selectedPicture = uri;
+  };
+
+  setTitle = () => {
+    Alert.prompt(
+      'Title',
+      'Set the title of your video',
+      [
+        {
+          text: 'Cancel',
+          onPress: () => console.log('Cancel Pressed'),
+          style: 'cancel',
+        },
+        {
+          text: 'OK',
+          onPress: (text) => (
+            (this.state.videoTitle = text),
+            console.log('Title: ' + this.state.videoTitle),
+            this.setDescription()
+          ),
+        },
+      ],
+      'plain-text',
+    );
+  };
+
+  setDescription = () => {
+    Alert.prompt(
+      'Description',
+      'Set the description of your video',
+      [
+        {
+          text: 'Cancel',
+          onPress: () => console.log('Cancel Pressed'),
+          style: 'cancel',
+        },
+        {
+          text: 'OK',
+          onPress: (text) => (
+            (this.state.videoDescription = text),
+            console.log('Description: ' + this.state.videoDescription),
+            this.uploadVideo()
+          ),
+        },
+      ],
+      'plain-text',
+    );
+  };
+
   takeVideo = async () => {
     const {isRecording} = this.state;
     this.setState({captureAudio: true});
     const options = {
-      quality: RNCamera.Constants.VideoQuality['480p'],
+      quality: RNCamera.Constants.VideoQuality['720p'],
       codec: RNCamera.Constants.VideoCodec['H264'],
     };
     if (this.camera && !isRecording) {
@@ -119,7 +249,7 @@ class App extends Component {
           CameraRoll.save(data.uri);
           this.setState({videoURI: data.uri});
           this.setState({qr: data.uri});
-          console.log(this.state.videoURI);
+          //console.log(this.state.videoURI);
         }
       } catch (e) {
         console.error(e);
@@ -149,6 +279,7 @@ class App extends Component {
     this.setState({webScreen: false});
     this.setState({startScreen: false});
     this.setState({qrScreen: false});
+    this.setState({previewScreenFromRoll: false});
   };
 
   openQR = () => {
@@ -162,6 +293,7 @@ class App extends Component {
     this.setState({recordScreen: false});
     this.setState({webScreen: false});
     this.setState({startScreen: false});
+    this.setState({previewScreenFromRoll: false});
   };
 
   openPreview = () => {
@@ -173,7 +305,21 @@ class App extends Component {
     this.setState({scannerScreen: false});
     this.setState({rollScreen: false});
     this.setState({messageScreen: false});
+    this.setState({previewScreenFromRoll: false});
     this.setState({previewScreen: true});
+  };
+
+  openPreviewFromRoll = () => {
+    this.setState({qrScreen: false});
+    this.setState({selectScreen: false});
+    this.setState({startScreen: false});
+    this.setState({recordScreen: false});
+    this.setState({webScreen: false});
+    this.setState({scannerScreen: false});
+    this.setState({rollScreen: false});
+    this.setState({messageScreen: false});
+    this.setState({previewScreen: false});
+    this.setState({previewScreenFromRoll: true});
   };
 
   openRoll = () => {
@@ -186,6 +332,7 @@ class App extends Component {
     this.setState({webScreen: false});
     this.setState({scannerScreen: false});
     this.setState({rollScreen: true});
+    this.setState({previewScreenFromRoll: false});
   };
 
   openScanner = () => {
@@ -198,9 +345,11 @@ class App extends Component {
     this.setState({recordScreen: false});
     this.setState({webScreen: false});
     this.setState({scannerScreen: true});
+    this.setState({previewScreenFromRoll: false});
   };
 
   openStart = () => {
+    //console.log('okay');
     this.setState({qrScreen: false});
     this.setState({selectScreen: false});
     this.setState({previewScreen: false});
@@ -210,6 +359,7 @@ class App extends Component {
     this.setState({recordScreen: false});
     this.setState({webScreen: false});
     this.setState({startScreen: true});
+    this.setState({previewScreenFromRoll: false});
   };
 
   openMessages = () => {
@@ -222,6 +372,7 @@ class App extends Component {
     this.setState({webScreen: false});
     this.setState({startScreen: false});
     this.setState({messageScreen: true});
+    this.setState({previewScreenFromRoll: false});
   };
 
   openRecord = () => {
@@ -235,6 +386,7 @@ class App extends Component {
     this.setState({scannerScreen: false});
     this.setState({webScreen: false});
     this.setState({recordScreen: true});
+    this.setState({previewScreenFromRoll: false});
   };
 
   openWeb = () => {
@@ -247,6 +399,7 @@ class App extends Component {
     this.setState({recordScreen: false});
     this.setState({scannerScreen: false});
     this.setState({webScreen: true});
+    this.setState({previewScreenFromRoll: false});
   };
 
   onRead = (e) => {
@@ -254,6 +407,9 @@ class App extends Component {
     this.setState({selectScreen: false});
     this.setState({previewScreen: false});
     this.setState({qr: e.data});
+    //this.scanVideo();
+    //console.log(e.data);
+    //console.log(this.state.bearerToken);
     this.setState({ViewMode: true});
     this.setState({rollScreen: false});
     this.setState({messageScreen: false});
@@ -261,6 +417,18 @@ class App extends Component {
     this.setState({recordScreen: false});
     this.setState({scannerScreen: false});
     this.setState({webScreen: true});
+    this.setState({previewScreenFromRoll: false});
+    //this.scanVideo();
+  };
+
+  videoError = (e) => {
+    if (e.error.code === -1013) {
+      alert("You don't have access to watch the scanned video!");
+      this.openScanner();
+    } else {
+      alert('Something went wrong. Error code: ' + e.error.code);
+    }
+    //console.log(e.error.code);
   };
 
   setOpenCamera = () => {
@@ -269,6 +437,93 @@ class App extends Component {
 
   setViewModeFalse = () => {
     this.setState({ViewMode: false});
+  };
+
+  getToken = async () => {
+    const requestOptions = {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username: 'admin', password: 'admin'}),
+    };
+
+    const response = await fetch(
+      'https://sopsimple.com/api/login_check',
+      requestOptions,
+    );
+
+    const data = await response.json();
+    //console.log(data);
+    this.setState({token: JSON.stringify(data)});
+
+    this.state.token = this.state.token.slice(10);
+
+    this.state.token = this.state.token.slice(0, this.state.token.length - 2);
+
+    this.state.bearerToken = this.state.bearerToken + this.state.token;
+
+    console.log(this.state.bearerToken);
+  };
+
+  uploadVideo = async () => {
+    var video = {
+      uri: this.state.videoURI,
+      type: 'video/quicktime',
+      name: this.state.title + '.mov',
+    };
+
+    const auth_string = this.state.bearerToken;
+
+    const str2 = 'video="' + this.state.videoURI + '"';
+
+    let formData = new FormData();
+
+    formData.append('video', video);
+    formData.append('title', this.state.videoTitle);
+    formData.append('description', this.state.videoDescription);
+
+    //console.log(formData);
+
+    const requestOptions = {
+      method: 'POST',
+      headers: {Authorization: auth_string},
+      body: formData,
+    };
+
+    const response = await fetch(
+      'https://sopsimple.com/api/add-video',
+      requestOptions,
+    );
+
+    const responseData = await response.json();
+
+    this.state.qr = responseData.videoPath;
+
+    if (responseData.status == 'success') {
+      this.openQR();
+    } else {
+      this.getToken();
+      this.uploadVideo();
+    }
+
+    //console.log(responseData);
+
+    //console.log(responseData.videoPath);
+  };
+
+  scanVideo = async () => {
+    const auth_string = 'Bearer ' + this.state.token;
+
+    const requestOptions = {
+      method: 'GET',
+      headers: {
+        Authorization: auth_string,
+        'Content-type': 'application/json',
+      },
+    };
+
+    const response = await fetch(this.state.qr, requestOptions);
+
+    console.log(response);
   };
 
   /*saveScreenshot = () => {
@@ -333,11 +588,22 @@ class App extends Component {
                 style={{
                   height: '10%',
                   width: '85%',
-                  backgroundColor: 'white',
+
                   alignItems: 'center',
                   borderRadius: 5,
                 }}>
-                <Text style={styles.logoSOP}>SopSimple</Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    this.getToken();
+                  }}>
+                  <Image
+                    source={require('./image/sopsimplelogo.png')}
+                    style={{
+                      maxWidth: '90%',
+                      maxHeight: '90%',
+                    }}
+                  />
+                </TouchableOpacity>
               </View>
 
               <View style={{height: '15%'}}></View>
@@ -346,15 +612,15 @@ class App extends Component {
                 <TouchableOpacity
                   style={styles.startButtons}
                   onPress={() => {
-                    this.openScanner();
+                    this.chooseVideoFromLibrary();
                     //Vibration.vibrate();
                   }}>
                   <View style={{height: '22%'}}></View>
                   <Image
-                    source={require('./image/qrcodelogo.png')}
+                    source={require('./image/camerarolllogoWHITE.png')}
                     style={{
-                      maxWidth: '80%',
-                      maxHeight: '80%',
+                      maxWidth: '90%',
+                      maxHeight: '90%',
                     }}
                   />
                 </TouchableOpacity>
@@ -366,7 +632,7 @@ class App extends Component {
                   onPress={() => this.openRecord()}>
                   <View style={{height: '21%'}}></View>
                   <Image
-                    source={require('./image/recordlogo.png')}
+                    source={require('./image/recordlogoWHITE.png')}
                     style={{
                       maxWidth: '80%',
                       maxHeight: '80%',
@@ -379,14 +645,13 @@ class App extends Component {
                 <TouchableOpacity
                   style={styles.startButtons}
                   onPress={() => {
-                    this.openMessages();
-                    //Vibration.vibrate();
+                    alert('Under construction!');
+                    //this.openMessages();
                   }}>
                   <View style={{height: '29%'}}></View>
                   <Image
-                    source={require('./image/messagelogo.png')}
-                    style={{maxWidth: '80%', maxHeight: '80%'}}
-                  />
+                    source={require('./image/messagelogoWHITE.png')}
+                    style={{maxWidth: '80%', maxHeight: '80%'}}></Image>
                 </TouchableOpacity>
 
                 <View style={{width: '10%'}} />
@@ -394,13 +659,16 @@ class App extends Component {
                 <TouchableOpacity
                   style={styles.startButtons}
                   onPress={() => {
-                    this.openRoll();
+                    this.openScanner();
                     //Vibration.vibrate();
                   }}>
-                  <View style={{height: '29%'}}></View>
                   <Image
-                    source={require('./image/camerarolllogo.png')}
-                    style={{maxWidth: '90%', maxHeight: '90%'}}
+                    source={require('./image/scanlogoWHITE.png')}
+                    style={{
+                      maxWidth: '80%',
+                      maxHeight: '80%',
+                      marginTop: '29%',
+                    }}
                   />
                 </TouchableOpacity>
               </View>
@@ -409,7 +677,7 @@ class App extends Component {
 
           {this.state.scannerScreen ? (
             <View style={styles.cameraScreen}>
-              <View>
+              <View style={{width: '100%', height: '70%'}}>
                 <QRCodeScanner
                   ref={(node) => {
                     this.scanner = node;
@@ -418,16 +686,20 @@ class App extends Component {
                 />
               </View>
 
-              <View>
+              <View style={{height: '17%'}}></View>
+
+              <View style={styles.bottomNav}>
                 <TouchableOpacity
-                  style={styles.scannerButton}
-                  onPress={() => {
-                    this.openStart();
-                    //Vibration.vibrate();
-                  }}>
-                  <View>
-                    <Text style={styles.textStyle}>BACK</Text>
-                  </View>
+                  style={styles.bottomNavButtons}
+                  onPress={() => this.openStart()}>
+                  <Image
+                    source={require('./image/backlogo.png')}
+                    style={{
+                      maxWidth: '90%',
+                      maxHeight: '90%',
+                      marginTop: '35%',
+                    }}
+                  />
                 </TouchableOpacity>
               </View>
             </View>
@@ -440,46 +712,53 @@ class App extends Component {
                 width: '100%',
               }}>
               <Video
-                source={{uri: this.state.qr}} // Can be a URL or a local file.
+                source={{
+                  uri: this.state.qr,
+                  headers: {
+                    Authorization: this.state.bearerToken,
+                  },
+                }}
                 ref={(ref) => {
                   this.player = ref;
-                }} // Store reference
-                onBuffer={this.onBuffer} // Callback when remote video is buffering
-                onError={this.videoError} // Callback when video cannot be loaded
+                }}
+                onBuffer={this.onBuffer}
+                onError={this.videoError}
                 style={{
                   height: '70%',
                   width: '100%',
                 }}
               />
 
-              <View
-                style={{
-                  height: '30%',
-                  width: '100%',
-                  flexDirection: 'row',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                }}>
+              <View style={{height: '17%'}}></View>
+
+              <View style={styles.bottomNav}>
                 <TouchableOpacity
-                  style={styles.scannerButtons}
-                  onPress={() => {
-                    this.openStart();
-                  }}>
-                  <View>
-                    <Text style={styles.textStyle}>BACK</Text>
-                  </View>
+                  style={styles.bottomNavButtons}
+                  onPress={() => this.openStart()}>
+                  <Image
+                    source={require('./image/backlogo.png')}
+                    style={{
+                      maxWidth: '90%',
+                      maxHeight: '90%',
+                      marginTop: '35%',
+                    }}
+                  />
                 </TouchableOpacity>
 
-                <View style={{width: '10%'}}></View>
-
                 <TouchableOpacity
-                  style={styles.scannerButtons}
+                  style={styles.bottomNavButtons}
                   onPress={() => {
                     this.openScanner();
+                    //Vibration.vibrate();
                   }}>
-                  <View>
-                    <Text style={styles.textStyle}>SCAN AGAIN</Text>
-                  </View>
+                  <Image
+                    source={require('./image/scanlogoWHITE.png')}
+                    style={{
+                      maxWidth: '80%',
+                      maxHeight: '80%',
+                      marginTop: '29%',
+                    }}
+                  />
                 </TouchableOpacity>
               </View>
             </View>
@@ -505,55 +784,53 @@ class App extends Component {
                   mirrorImage={this.state.mirrorMode}></RNCamera>
               </View>
 
-              <View style={{height: '6%'}}></View>
+              <View style={{height: '12%'}}></View>
 
-              <View
-                style={{
-                  width: '100%',
-                  height: '40%',
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                }}>
+              <View style={styles.bottomNav}>
                 <TouchableOpacity
-                  style={{
-                    height: '39%',
-                    width: '25%',
-                    borderRadius: 25,
-                    backgroundColor: 'white',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
+                  style={styles.bottomNavButtons}
                   onPress={() => this.openStart()}>
-                  <Text style={styles.textStyle}>BACK</Text>
+                  <Image
+                    source={require('./image/backlogo.png')}
+                    style={{
+                      maxWidth: '90%',
+                      maxHeight: '90%',
+                      marginTop: '35%',
+                    }}
+                  />
                 </TouchableOpacity>
-
                 <View style={styles.outerRecordingButton}>
                   {!this.state.isRecording ? (
                     <TouchableOpacity onPress={() => this.takeVideo()}>
                       <View style={styles.recordingCircle}></View>
                     </TouchableOpacity>
                   ) : (
-                    <TouchableOpacity onPress={() => this.stopVideo()}>
+                    <TouchableOpacity
+                      style={{height: '100%'}}
+                      onPress={() => this.stopVideo()}>
+                      <View style={{height: '27%'}}></View>
                       <View style={styles.recordingSquare}></View>
                     </TouchableOpacity>
                   )}
                 </View>
-
-                <TouchableOpacity
-                  style={{
-                    height: '39%',
-                    width: '25%',
-                    borderRadius: 25,
-                    backgroundColor: 'white',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
-                  onPress={() => this.changeCameraType()}>
-                  <Image
-                    source={require('./image/flip-camera.png')}
-                    style={{height: '40%', width: '66%'}}
-                  />
-                </TouchableOpacity>
+                {!this.state.isRecording ? (
+                  <TouchableOpacity
+                    style={styles.bottomNavButtons}
+                    onPress={() => this.changeCameraType()}>
+                    <View style={{height: '18%'}}></View>
+                    <Image
+                      source={require('./image/switchcameralogo.png')}
+                      style={{maxHeight: '65%', maxWidth: '65%'}}
+                    />
+                  </TouchableOpacity>
+                ) : (
+                  <View
+                    style={{
+                      marginLeft: 5,
+                      marginRight: 5,
+                      width: '27%',
+                    }}></View>
+                )}
               </View>
             </View>
           ) : null}
@@ -563,7 +840,7 @@ class App extends Component {
               style={{
                 width: '100%',
                 height: '100%',
-                justifyContent: 'center',
+                justifyContent: 'flex-start',
                 alignItems: 'center',
               }}>
               <Video
@@ -586,43 +863,105 @@ class App extends Component {
                     width: '4%',
                   }}></View>
               </Video>
-              <View
-                style={{height: '20%', width: '100%', flexDirection: 'row'}}>
+              <View style={{height: '7%'}}></View>
+              <View style={styles.bottomNav}>
                 <TouchableOpacity
-                  style={{
-                    marginTop: '8%',
-                    height: '80%',
-                    width: '40%',
-                    backgroundColor: 'white',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    borderRadius: 25,
-                  }}
+                  style={styles.bottomNavButtons}
                   onPress={() => this.openRecord()}>
-                  <View>
-                    <Text style={styles.textStyle}>RECORD AGAIN</Text>
-                  </View>
+                  <Image
+                    source={require('./image/recordlogoWHITE.png')}
+                    style={{
+                      marginTop: '30%',
+                      maxWidth: '80%',
+                      maxHeight: '80%',
+                    }}
+                  />
                 </TouchableOpacity>
-
-                <View style={{width: '20%'}}></View>
 
                 <TouchableOpacity
+                  style={styles.bottomNavButtons}
+                  onPress={() => this.setTitle()}>
+                  <Image
+                    source={require('./image/sopsimpleqr.png')}
+                    style={{
+                      maxWidth: '70%',
+                      maxHeight: '70%',
+                      marginTop: '20%',
+                    }}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : null}
+
+          {this.state.previewScreenFromRoll ? (
+            <View
+              style={{
+                width: '100%',
+                height: '100%',
+                justifyContent: 'flex-start',
+                alignItems: 'center',
+              }}>
+              <Video
+                source={{uri: this.state.videoURI}} // Can be a URL or a local file.
+                ref={(ref) => {
+                  this.player = ref;
+                }} // Store reference
+                onBuffer={this.onBuffer} // Callback when remote video is buffering
+                onError={this.videoError} // Callback when video cannot be loaded
+                style={{
+                  height: '80%',
+                  width: '100%',
+                  justifyContent: 'flex-end',
+                  alignItems: 'center',
+                }}>
+                <View
                   style={{
-                    marginTop: '8%',
-                    height: '80%',
-                    width: '40%',
                     backgroundColor: 'white',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    borderRadius: 25,
-                  }}
-                  onPress={() => this.openQR()}>
-                  <View>
-                    <Text style={styles.textStyle}>GET QR-CODE</Text>
-                  </View>
+                    height: '10%',
+                    width: '4%',
+                  }}></View>
+              </Video>
+              <View style={{height: '7%'}}></View>
+              <View style={styles.bottomNav}>
+                <TouchableOpacity
+                  style={styles.bottomNavButtons}
+                  onPress={() => this.openStart()}>
+                  <Image
+                    source={require('./image/backlogo.png')}
+                    style={{
+                      maxWidth: '90%',
+                      maxHeight: '90%',
+                      marginTop: '35%',
+                    }}
+                  />
                 </TouchableOpacity>
 
-                <View style={{width: '20%'}}></View>
+                <TouchableOpacity
+                  style={styles.bottomNavButtons}
+                  onPress={() => this.chooseVideoFromLibrary()}>
+                  <Image
+                    source={require('./image/camerarolllogoWHITE.png')}
+                    style={{
+                      maxWidth: '90%',
+                      maxHeight: '90%',
+                      marginTop: '35%',
+                    }}
+                  />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.bottomNavButtons}
+                  onPress={() => this.setTitle()}>
+                  <Image
+                    source={require('./image/sopsimpleqr.png')}
+                    style={{
+                      maxWidth: '70%',
+                      maxHeight: '70%',
+                      marginTop: '20%',
+                    }}
+                  />
+                </TouchableOpacity>
               </View>
             </View>
           ) : null}
@@ -667,15 +1006,13 @@ class App extends Component {
                 justifyContent: 'center',
                 alignItems: 'center',
               }}>
-              <Video
-                source={{uri: this.state.videoURI}} // Can be a URL or a local file.
-                ref={(ref) => {
-                  this.player = ref;
-                }} // Store reference
-                onBuffer={this.onBuffer} // Callback when remote video is buffering
-                onError={this.videoError} // Callback when video cannot be loaded
-                style={{height: '100%', width: '100%'}}
-              />
+              <ViewShot>
+                <QRCode value={this.state.qr} size={300} />
+              </ViewShot>
+
+              <View style={styles.bottomNav}>
+                <Button title="back" onPress={this.openStart}></Button>
+              </View>
             </View>
           ) : null}
 
@@ -684,21 +1021,52 @@ class App extends Component {
               style={{
                 width: '100%',
                 height: '100%',
-                justifyContent: 'center',
+                justifyContent: 'flex-start',
                 alignItems: 'center',
               }}>
+              <View style={{height: '20%'}}></View>
+
               <ViewShot
                 style={styles.container}
-                ref="viewShot"
-                options={{format: 'jpg', quality: 0.9}}>
+                options={{format: 'jpg', quality: 1.0}}
+                onCapture={this.onCapture}
+                captureMode="mount">
+                <Text style={{textAlign: 'center'}}>
+                  {this.state.videoTitle}
+                </Text>
                 <QRCode value={this.state.qr} size={300} />
               </ViewShot>
-              <View>
-                <Button
-                  style={styles.label}
-                  title="Save"
-                  onPress={this.saveScreenshot}
-                />
+
+              <View style={{height: '26%'}}></View>
+
+              <View style={styles.bottomNav}>
+                <TouchableOpacity
+                  style={styles.bottomNavButtons}
+                  onPress={() => this.openStart()}>
+                  <Image
+                    source={require('./image/backlogo.png')}
+                    style={{
+                      maxWidth: '90%',
+                      maxHeight: '90%',
+                      marginTop: '35%',
+                    }}
+                  />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.bottomNavButtons}
+                  onPress={this.choosePrinter}>
+                  <View>
+                    <Text
+                      style={{
+                        color: 'white',
+                        fontFamily: 'AvenirNext-DemiBold',
+                        fontSize: 20,
+                      }}>
+                      Print
+                    </Text>
+                  </View>
+                </TouchableOpacity>
               </View>
             </View>
           ) : null}
@@ -707,15 +1075,6 @@ class App extends Component {
     );
   }
 }
-/*
-{this.state.qr ? <QRCode value={this.state.qr} /> : null}
-        {this.state.qr ? (
-          <Button title="Open link" onPress={() => console.log('sd')}></Button>
-        ) : null}
-
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>{this.state.qr}</Text>
-        </View> */
 
 const styles = StyleSheet.create({
   input: {
@@ -725,13 +1084,33 @@ const styles = StyleSheet.create({
     width: '80%',
   },
 
+  bottomNav: {
+    //backgroundColor: 'rgb(230, 230, 235)',
+    flexDirection: 'row',
+    width: '100%',
+    height: '18%',
+    //alignItems: 'stretch',
+    justifyContent: 'space-between',
+  },
+
+  bottomNavButtons: {
+    marginLeft: 5,
+    marginRight: 5,
+    height: '75%',
+    width: '27%',
+    backgroundColor: 'rgb(15, 42, 70)',
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
   wholeScreen: {
     height: '100%',
     flex: 1,
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgb(15, 42, 80)',
+    backgroundColor: 'rgb(240, 240, 245)',
   },
 
   leftBar: {
@@ -766,7 +1145,15 @@ const styles = StyleSheet.create({
     height: '81%',
     width: '45%',
     borderRadius: 30,
-    backgroundColor: 'white',
+    backgroundColor: 'rgb(15, 42, 70)',
+  },
+
+  tokenSaver: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100%',
+    width: '100%',
+    backgroundColor: 'rgb(15, 42, 70)',
   },
 
   scannerButtons: {
@@ -779,8 +1166,10 @@ const styles = StyleSheet.create({
   },
 
   cameraScreen: {
-    flex: 1,
-    justifyContent: 'center',
+    width: '100%',
+    height: '100%',
+    flexDirection: 'column',
+    justifyContent: 'flex-start',
   },
 
   scannerButton: {
@@ -819,23 +1208,23 @@ const styles = StyleSheet.create({
   outerRecordingButton: {
     justifyContent: 'center',
     alignItems: 'center',
-    height: 110,
-    width: 110,
-    borderRadius: 55,
-    backgroundColor: 'white',
+    height: 100,
+    width: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgb(15, 42, 70)',
   },
 
   recordingCircle: {
-    height: 55,
-    width: 55,
-    borderRadius: 35,
-    backgroundColor: 'red',
+    height: 80,
+    width: 80,
+    borderRadius: 40,
+    backgroundColor: 'white',
   },
 
   recordingSquare: {
-    height: 45,
-    width: 45,
-    backgroundColor: 'red',
+    height: 46,
+    width: 46,
+    backgroundColor: 'white',
   },
 });
 

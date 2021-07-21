@@ -7,7 +7,8 @@
     "ios": "react-native run-ios",
     "start": "react-native start",
     "test": "jest",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "build:ios": "react-native bundle --entry-file='index.js' --bundle-output='./ios/main.jsbundle' --dev=false --platform='ios'"
   },
   "dependencies": {
     "@react-native-community/cameraroll": "^4.0.2",
@@ -15,11 +16,14 @@
     "react": "16.13.1",
     "react-native": "0.63.4",
     "react-native-beautiful-video-recorder": "^2.0.1",
+    "react-native-bluetooth-escpos-printer": "0.0.5",
     "react-native-camera": "^3.42.0",
     "react-native-document-picker": "^4.2.0",
     "react-native-google-signin": "^2.1.1",
+    "react-native-image-crop-picker": "^0.36.2",
     "react-native-mov-to-mp4": "^0.2.2",
     "react-native-permissions": "^3.0.0",
+    "react-native-print": "^0.7.0",
     "react-native-qrcode-scanner": "^1.5.3",
     "react-native-qrcode-svg": "^6.0.6",
     "react-native-svg": "^12.1.0",
