@@ -686,7 +686,7 @@ class App extends Component {
                 />
               </View>
 
-              <View style={{height: '17%'}}></View>
+              <View style={{height: '12%'}}></View>
 
               <View style={styles.bottomNav}>
                 <TouchableOpacity
@@ -784,7 +784,7 @@ class App extends Component {
                   mirrorImage={this.state.mirrorMode}></RNCamera>
               </View>
 
-              <View style={{height: '12%'}}></View>
+              <View style={{height: '7%%'}}></View>
 
               <View style={styles.bottomNav}>
                 <TouchableOpacity
@@ -863,7 +863,7 @@ class App extends Component {
                     width: '4%',
                   }}></View>
               </Video>
-              <View style={{height: '7%'}}></View>
+              <View style={{height: '2%'}}></View>
               <View style={styles.bottomNav}>
                 <TouchableOpacity
                   style={styles.bottomNavButtons}
@@ -922,7 +922,7 @@ class App extends Component {
                     width: '4%',
                   }}></View>
               </Video>
-              <View style={{height: '7%'}}></View>
+              <View style={{height: '2%'}}></View>
               <View style={styles.bottomNav}>
                 <TouchableOpacity
                   style={styles.bottomNavButtons}
@@ -1037,7 +1037,7 @@ class App extends Component {
                 <QRCode value={this.state.qr} size={300} />
               </ViewShot>
 
-              <View style={{height: '26%'}}></View>
+              <View style={{height: '21%'}}></View>
 
               <View style={styles.bottomNav}>
                 <TouchableOpacity
