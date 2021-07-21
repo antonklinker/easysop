@@ -659,6 +659,7 @@ class App extends Component {
                 <TouchableOpacity
                   style={styles.startButtons}
                   onPress={() => {
+                    this.getToken();
                     this.openScanner();
                     //Vibration.vibrate();
                   }}>
