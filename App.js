@@ -162,6 +162,9 @@ class App extends Component {
   };
 
   chooseVideoFromLibrary = () => {
+    if (this.state.bearerToken == 'Bearer ') {
+      this.getToken();
+    }
     ImagePicker.openPicker({
       mediaType: 'video',
     }).then((video) => {
@@ -336,6 +339,9 @@ class App extends Component {
   };
 
   openScanner = () => {
+    if (this.state.bearerToken == 'Bearer ') {
+      this.getToken();
+    }
     this.setState({qrScreen: false});
     this.setState({selectScreen: false});
     this.setState({previewScreen: false});
@@ -350,6 +356,9 @@ class App extends Component {
 
   openStart = () => {
     //console.log('okay');
+    if (this.state.bearerToken == 'Bearer ') {
+      this.getToken();
+    }
     this.setState({qrScreen: false});
     this.setState({selectScreen: false});
     this.setState({previewScreen: false});
@@ -387,6 +396,9 @@ class App extends Component {
     this.setState({webScreen: false});
     this.setState({recordScreen: true});
     this.setState({previewScreenFromRoll: false});
+    if (this.state.bearerToken == 'Bearer ') {
+      this.getToken();
+    }
   };
 
   openWeb = () => {
@@ -424,7 +436,9 @@ class App extends Component {
   videoError = (e) => {
     if (e.error.code === -1013) {
       alert("You don't have access to watch the scanned video!");
-      this.openScanner();
+      //this.openScanner();
+      //this.getToken();
+      console.log(e);
     } else {
       alert('Something went wrong. Error code: ' + e.error.code);
     }
@@ -501,8 +515,9 @@ class App extends Component {
     if (responseData.status == 'success') {
       this.openQR();
     } else {
-      this.getToken();
-      this.uploadVideo();
+      alert(responseData.status);
+      //this.getToken();
+      //this.uploadVideo();
     }
 
     //console.log(responseData);
@@ -659,7 +674,7 @@ class App extends Component {
                 <TouchableOpacity
                   style={styles.startButtons}
                   onPress={() => {
-                    this.getToken();
+                    //this.getToken();
                     this.openScanner();
                     //Vibration.vibrate();
                   }}>
