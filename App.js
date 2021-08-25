@@ -59,8 +59,9 @@ class App extends Component {
     qr: 'www.sopsimple.com',
     openCamera: false,
     ViewMode: false,
+    loginScreen: true,
     selectScreen: false,
-    startScreen: true,
+    startScreen: false,
     scannerScreen: false,
     recordScreen: false,
     webScreen: false,
@@ -92,10 +93,9 @@ class App extends Component {
 
     cameraType: 'back',
     mirrorMode: false,
-  };
 
-  textInput = () => {
-    const [text, onChangeText] = React.useState('some text');
+    username: '',
+    password: '',
   };
 
   loadRolls = () => {
@@ -188,6 +188,8 @@ class App extends Component {
     this.state.selectedPicture = uri;
   };
 
+  getPlaylists = () => {};
+
   setTitle = () => {
     Alert.prompt(
       'Title',
@@ -255,6 +257,7 @@ class App extends Component {
           //console.log(this.state.videoURI);
         }
       } catch (e) {
+        this.openRecord();
         console.error(e);
       }
     }
@@ -269,6 +272,18 @@ class App extends Component {
 
   setRecording = (e) => {
     this.setState({recording: e});
+  };
+
+  openLogin = () => {
+    this.setState({loginScreen: true});
+    this.setState({startScreen: false});
+  };
+
+  logout = () => {
+    this.setState({startScreen: false});
+    this.setState({loginScreen: true});
+    this.setState({token: ''});
+    this.setState({password: '', username: ''});
   };
 
   openSelect = () => {
@@ -359,6 +374,7 @@ class App extends Component {
     if (this.state.bearerToken == 'Bearer ') {
       this.getToken();
     }
+    this.setState({loginScreen: false});
     this.setState({qrScreen: false});
     this.setState({selectScreen: false});
     this.setState({previewScreen: false});
@@ -457,7 +473,10 @@ class App extends Component {
     const requestOptions = {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({username: 'admin', password: 'admin'}),
+      body: JSON.stringify({
+        username: this.state.username,
+        password: this.state.password,
+      }),
     };
 
     const response = await fetch(
@@ -466,7 +485,8 @@ class App extends Component {
     );
 
     const data = await response.json();
-    //console.log(data);
+    console.log(data);
+
     this.setState({token: JSON.stringify(data)});
 
     this.state.token = this.state.token.slice(10);
@@ -475,7 +495,20 @@ class App extends Component {
 
     this.state.bearerToken = this.state.bearerToken + this.state.token;
 
-    console.log(this.state.bearerToken);
+    if (data.code === 401) {
+      alert(
+        'Error! Code: ' +
+          data.code +
+          '                                      Message: ' +
+          data.message,
+      );
+    }
+
+    if (data.token) {
+      this.openStart();
+    }
+
+    //console.log(this.state.bearerToken);
   };
 
   uploadVideo = async () => {
@@ -515,9 +548,8 @@ class App extends Component {
     if (responseData.status == 'success') {
       this.openQR();
     } else {
+      console.log(responseData);
       alert(responseData.status);
-      //this.getToken();
-      //this.uploadVideo();
     }
 
     //console.log(responseData);
@@ -595,6 +627,69 @@ class App extends Component {
               </View>
             </View>
           ) : null}
+          {this.state.loginScreen ? (
+            <View
+              style={{
+                height: '100%',
+                width: '100%',
+                alignItems: 'center',
+              }}>
+              <View style={{height: '3%'}}></View>
+
+              <View
+                style={{
+                  height: '10%',
+                  width: '85%',
+
+                  alignItems: 'center',
+                  borderRadius: 5,
+                }}>
+                <TouchableOpacity>
+                  <Image
+                    source={require('./image/sopsimplelogo.png')}
+                    style={{
+                      maxWidth: '90%',
+                      maxHeight: '90%',
+                    }}
+                  />
+                </TouchableOpacity>
+              </View>
+              <Text style={{marginLeft: '-57%', marginBottom: '-2%'}}>
+                Username
+              </Text>
+              <TextInput
+                style={styles.input}
+                placeholder={'OKAY'}
+                onChangeText={(value) => this.setState({username: value})}
+                value={this.state.username}></TextInput>
+              <Text style={{marginLeft: '-57%', marginBottom: '-2%'}}>
+                Password
+              </Text>
+              <TextInput
+                style={styles.input}
+                secureTextEntry={true}
+                onChangeText={(value) => this.setState({password: value})}
+                value={this.state.password}></TextInput>
+
+              <View
+                style={{height: '100%', width: '100%', alignItems: 'center'}}>
+                <TouchableOpacity
+                  style={{
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    height: '10%',
+                    width: '80%',
+                    borderRadius: 30,
+                    backgroundColor: 'rgb(15, 42, 70)',
+                  }}
+                  onPress={() => {
+                    this.getToken();
+                  }}>
+                  <Text style={{color: 'white'}}>Login</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : null}
           {this.state.startScreen ? (
             <View style={{height: '100%', width: '100%', alignItems: 'center'}}>
               <View style={{height: '3%'}}></View>
@@ -609,7 +704,7 @@ class App extends Component {
                 }}>
                 <TouchableOpacity
                   onPress={() => {
-                    this.getToken();
+                    this.logout();
                   }}>
                   <Image
                     source={require('./image/sopsimplelogo.png')}
@@ -665,8 +760,12 @@ class App extends Component {
                   }}>
                   <View style={{height: '29%'}}></View>
                   <Image
-                    source={require('./image/messagelogoWHITE.png')}
-                    style={{maxWidth: '80%', maxHeight: '80%'}}></Image>
+                    source={require('./image/videosicon.png')}
+                    style={{
+                      maxWidth: '80%',
+                      maxHeight: '80%',
+                      marginTop: '-10%',
+                    }}></Image>
                 </TouchableOpacity>
 
                 <View style={{width: '10%'}} />
@@ -687,6 +786,22 @@ class App extends Component {
                     }}
                   />
                 </TouchableOpacity>
+              </View>
+
+              <View style={styles.buttonPlacement}>
+                <TouchableOpacity
+                  style={styles.startButtons}
+                  onPress={() => {
+                    alert('Under construction!');
+                    //this.openMessages();
+                  }}>
+                  <View style={{height: '29%'}}></View>
+                  <Image
+                    source={require('./image/messagelogoWHITE.png')}
+                    style={{maxWidth: '80%', maxHeight: '80%'}}></Image>
+                </TouchableOpacity>
+
+                <View style={{width: '10%'}} />
               </View>
             </View>
           ) : null}
@@ -1098,6 +1213,9 @@ const styles = StyleSheet.create({
     margin: 12,
     borderWidth: 1,
     width: '80%',
+    opacity: 1,
+    borderColor: 'rgb(15, 42, 70)',
+    borderRadius: 15,
   },
 
   bottomNav: {
