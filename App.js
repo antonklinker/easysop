@@ -22,6 +22,7 @@ import {
   TextInput,
   TouchableHighlightBase,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 
 import ImagePicker from 'react-native-image-crop-picker';
@@ -56,7 +57,7 @@ import RNPrint from 'react-native-print';
 class App extends Component {
   state = {
     videoURI: '',
-    qr: 'www.sopsimple.com',
+    qr: '',
     openCamera: false,
     ViewMode: false,
     loginScreen: true,
@@ -71,6 +72,7 @@ class App extends Component {
     recording: false,
     captureAudio: true,
     qrScreen: false,
+    playlistScreen: false,
     previewScreenFromRoll: false,
     videoTitle: '',
     videoDescription: '',
@@ -96,6 +98,38 @@ class App extends Component {
 
     username: '',
     password: '',
+
+    uploading: false,
+
+    playlistTitle: [],
+    playlistURL: [],
+
+    playliststart: 0,
+    playlistlength: null,
+  };
+
+  playliststuff = {
+    playlistTitle: [],
+    playlistURL: [],
+
+    // variables to determine which playlists to use on the buttons (in case there are more than 4 videos)
+    playliststart: 0,
+    playlistlength: null,
+
+    // bools to determine how many buttons there should be
+    playlistbutton1: false,
+    playlistbutton2: false,
+    playlistbutton3: false,
+    playlistbutton4: false,
+
+    // variables to display how many pages there are
+    playlistpage: 1,
+    totalpages: 1,
+
+    // bool to check if a selected playlist is open
+    inplaylist: false,
+
+    currentplaylist: '',
   };
 
   loadRolls = () => {
@@ -162,9 +196,6 @@ class App extends Component {
   };
 
   chooseVideoFromLibrary = () => {
-    if (this.state.bearerToken == 'Bearer ') {
-      this.getToken();
-    }
     ImagePicker.openPicker({
       mediaType: 'video',
     }).then((video) => {
@@ -188,7 +219,170 @@ class App extends Component {
     this.state.selectedPicture = uri;
   };
 
-  getPlaylists = () => {};
+  getPlaylists = async () => {
+    this.playliststuff.inplaylist = false;
+    const auth_string = this.state.bearerToken;
+
+    const requestOptions = {
+      method: 'GET',
+      headers: {
+        Authorization: auth_string,
+      },
+    };
+
+    const response = await fetch(
+      'https://sopsimple.com/api/user-playlists',
+      requestOptions,
+    );
+
+    const responseData = await response.json();
+
+    this.playliststuff.playlistlength = responseData.length;
+
+    console.log(responseData);
+
+    for (
+      var i = this.playliststuff.playliststart;
+      i < this.playliststuff.playlistlength;
+      i++
+    ) {
+      this.playliststuff.playlistURL[i] = responseData[i].url;
+      this.playliststuff.playlistTitle[i] = responseData[i].title;
+      //console.log(this.playliststuff.playlistURL[i]);
+      //console.log(this.playliststuff.playlistTitle[i]);
+    }
+
+    this.numberOfPlaylists();
+
+    var tempvar = this.playliststuff.playlistlength / 4;
+    this.playliststuff.totalpages = Math.ceil(tempvar);
+
+    if (response.status == 200) {
+      this.openPlaylists();
+    }
+  };
+
+  // method to determine how many buttons to display
+  numberOfPlaylists = () => {
+    if (this.playliststuff.playliststart < this.playliststuff.playlistlength) {
+      this.playliststuff.playlistbutton1 = true;
+    } else {
+      this.playliststuff.playlistbutton1 = false;
+    }
+
+    if (
+      this.playliststuff.playliststart + 1 <
+      this.playliststuff.playlistlength
+    ) {
+      this.playliststuff.playlistbutton2 = true;
+    } else {
+      this.playliststuff.playlistbutton2 = false;
+    }
+
+    if (
+      this.playliststuff.playliststart + 2 <
+      this.playliststuff.playlistlength
+    ) {
+      this.playliststuff.playlistbutton3 = true;
+    } else {
+      this.playliststuff.playlistbutton3 = false;
+    }
+
+    if (
+      this.playliststuff.playliststart + 3 <
+      this.playliststuff.playlistlength
+    ) {
+      this.playliststuff.playlistbutton4 = true;
+    } else {
+      this.playliststuff.playlistbutton4 = false;
+    }
+  };
+
+  nextPlaylists = () => {
+    if (
+      this.playliststuff.playlistlength - 4 >
+      this.playliststuff.playliststart
+    ) {
+      this.playliststuff.playlistpage++;
+      this.playliststuff.playliststart = this.playliststuff.playliststart + 4;
+
+      if (!this.playliststuff.inplaylist) {
+        this.getPlaylists();
+      } else if (this.playliststuff.inplaylist) {
+        this.openSelectedPlaylist(this.playliststuff.currentplaylist);
+      }
+    }
+  };
+
+  previousPlaylists = () => {
+    if (this.playliststuff.playliststart > 0) {
+      this.playliststuff.playlistpage--;
+      this.playliststuff.playliststart = this.playliststuff.playliststart - 4;
+
+      if (!this.playliststuff.inplaylist) {
+        this.getPlaylists();
+      } else if (this.playliststuff.inplaylist) {
+        this.openSelectedPlaylist(this.playliststuff.currentplaylist);
+      }
+    }
+  };
+
+  openSelectedVideo = (selectedvideo) => {
+    if (this.playliststuff.inplaylist) {
+      this.state.qr = selectedvideo;
+      console.log(this.state.qr);
+      this.openWeb();
+    }
+  };
+
+  // method to open the playlist from the playlist menu
+  // if already inside a playlist, this method will play a video
+  openSelectedPlaylist = async (selectedplaylist) => {
+    this.playliststuff.currentplaylist = selectedplaylist;
+
+    if (!this.playliststuff.inplaylist) {
+      this.playliststuff.playlistpage = 1;
+      this.playliststuff.playliststart = 0;
+    }
+    this.playliststuff.inplaylist = true;
+    const auth_string = this.state.bearerToken;
+
+    const requestOptions = {
+      method: 'GET',
+      headers: {
+        Authorization: auth_string,
+      },
+    };
+
+    const response = await fetch(
+      this.playliststuff.currentplaylist,
+      requestOptions,
+    );
+
+    const responseData = await response.json();
+
+    this.playliststuff.playlistlength = responseData.length;
+
+    //console.log(responseData[0].video);
+
+    for (
+      var i = this.playliststuff.playliststart;
+      i < this.playliststuff.playlistlength;
+      i++
+    ) {
+      this.playliststuff.playlistURL[i] = responseData[i].video;
+      this.playliststuff.playlistTitle[i] = responseData[i].title;
+      console.log(this.playliststuff.playlistURL[i]);
+      //console.log(this.playliststuff.playlistTitle[i]);
+    }
+
+    this.numberOfPlaylists();
+
+    var tempvar = this.playliststuff.playlistlength / 4;
+    this.playliststuff.totalpages = Math.ceil(tempvar);
+
+    this.openPlaylists();
+  };
 
   setTitle = () => {
     Alert.prompt(
@@ -228,7 +422,8 @@ class App extends Component {
           onPress: (text) => (
             (this.state.videoDescription = text),
             console.log('Description: ' + this.state.videoDescription),
-            this.uploadVideo()
+            this.uploadVideo(),
+            (this.state.uploading = true)
           ),
         },
       ],
@@ -283,7 +478,23 @@ class App extends Component {
     this.setState({startScreen: false});
     this.setState({loginScreen: true});
     this.setState({token: ''});
+    this.setState({bearerToken: 'Bearer '});
     this.setState({password: '', username: ''});
+  };
+
+  openPlaylists = () => {
+    this.setState({playlistScreen: true});
+    this.setState({selectScreen: false});
+    this.setState({startScreen: false});
+    this.setState({previewScreen: false});
+    this.setState({rollScreen: false});
+    this.setState({messageScreen: false});
+    this.setState({scannerScreen: false});
+    this.setState({recordScreen: false});
+    this.setState({webScreen: false});
+    this.setState({startScreen: false});
+    this.setState({qrScreen: false});
+    this.setState({previewScreenFromRoll: false});
   };
 
   openSelect = () => {
@@ -298,6 +509,7 @@ class App extends Component {
     this.setState({startScreen: false});
     this.setState({qrScreen: false});
     this.setState({previewScreenFromRoll: false});
+    this.setState({playlistScreen: false});
   };
 
   openQR = () => {
@@ -312,9 +524,11 @@ class App extends Component {
     this.setState({webScreen: false});
     this.setState({startScreen: false});
     this.setState({previewScreenFromRoll: false});
+    this.setState({playlistScreen: false});
   };
 
   openPreview = () => {
+    this.setState({previewScreen: true});
     this.setState({qrScreen: false});
     this.setState({selectScreen: false});
     this.setState({startScreen: false});
@@ -324,7 +538,7 @@ class App extends Component {
     this.setState({rollScreen: false});
     this.setState({messageScreen: false});
     this.setState({previewScreenFromRoll: false});
-    this.setState({previewScreen: true});
+    this.setState({playlistScreen: false});
   };
 
   openPreviewFromRoll = () => {
@@ -338,6 +552,7 @@ class App extends Component {
     this.setState({messageScreen: false});
     this.setState({previewScreen: false});
     this.setState({previewScreenFromRoll: true});
+    this.setState({playlistScreen: false});
   };
 
   openRoll = () => {
@@ -351,12 +566,10 @@ class App extends Component {
     this.setState({scannerScreen: false});
     this.setState({rollScreen: true});
     this.setState({previewScreenFromRoll: false});
+    this.setState({playlistScreen: false});
   };
 
   openScanner = () => {
-    if (this.state.bearerToken == 'Bearer ') {
-      this.getToken();
-    }
     this.setState({qrScreen: false});
     this.setState({selectScreen: false});
     this.setState({previewScreen: false});
@@ -367,13 +580,14 @@ class App extends Component {
     this.setState({webScreen: false});
     this.setState({scannerScreen: true});
     this.setState({previewScreenFromRoll: false});
+    this.setState({playlistScreen: false});
   };
 
   openStart = () => {
-    //console.log('okay');
-    if (this.state.bearerToken == 'Bearer ') {
-      this.getToken();
-    }
+    this.state.qr = '';
+    this.playliststuff.inplaylist = false;
+    this.playliststuff.playliststart = 0;
+    this.playliststuff.playlistpage = 1;
     this.setState({loginScreen: false});
     this.setState({qrScreen: false});
     this.setState({selectScreen: false});
@@ -385,6 +599,7 @@ class App extends Component {
     this.setState({webScreen: false});
     this.setState({startScreen: true});
     this.setState({previewScreenFromRoll: false});
+    this.setState({playlistScreen: false});
   };
 
   openMessages = () => {
@@ -398,6 +613,7 @@ class App extends Component {
     this.setState({startScreen: false});
     this.setState({messageScreen: true});
     this.setState({previewScreenFromRoll: false});
+    this.setState({playlistScreen: false});
   };
 
   openRecord = () => {
@@ -412,9 +628,7 @@ class App extends Component {
     this.setState({webScreen: false});
     this.setState({recordScreen: true});
     this.setState({previewScreenFromRoll: false});
-    if (this.state.bearerToken == 'Bearer ') {
-      this.getToken();
-    }
+    this.setState({playlistScreen: false});
   };
 
   openWeb = () => {
@@ -428,6 +642,7 @@ class App extends Component {
     this.setState({scannerScreen: false});
     this.setState({webScreen: true});
     this.setState({previewScreenFromRoll: false});
+    this.setState({playlistScreen: false});
   };
 
   onRead = (e) => {
@@ -446,6 +661,7 @@ class App extends Component {
     this.setState({scannerScreen: false});
     this.setState({webScreen: true});
     this.setState({previewScreenFromRoll: false});
+    this.setState({playlistScreen: false});
     //this.scanVideo();
   };
 
@@ -511,7 +727,61 @@ class App extends Component {
     //console.log(this.state.bearerToken);
   };
 
+  hackLogin = async () => {
+    const requestOptions = {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        username: 'admin',
+        password: 'admin',
+      }),
+    };
+
+    const response = await fetch(
+      'https://sopsimple.com/api/login_check',
+      requestOptions,
+    );
+
+    const data = await response.json();
+    console.log(data);
+
+    this.setState({token: JSON.stringify(data)});
+
+    this.state.token = this.state.token.slice(10);
+
+    this.state.token = this.state.token.slice(0, this.state.token.length - 2);
+
+    this.state.bearerToken = this.state.bearerToken + this.state.token;
+
+    if (data.code === 401) {
+      alert(
+        'Error! Code: ' +
+          data.code +
+          '                                      Message: ' +
+          data.message,
+      );
+    }
+
+    if (data.token) {
+      this.openStart();
+    }
+
+    //console.log(this.state.bearerToken);
+  };
+
   uploadVideo = async () => {
+    this.setState({qrScreen: false});
+    this.setState({selectScreen: false});
+    this.setState({previewScreen: false});
+    this.setState({rollScreen: false});
+    this.setState({scannerScreen: false});
+    this.setState({recordScreen: false});
+    this.setState({webScreen: false});
+    this.setState({startScreen: false});
+    this.setState({messageScreen: false});
+    this.setState({previewScreenFromRoll: false});
+    this.setState({uploading: true});
+
     var video = {
       uri: this.state.videoURI,
       type: 'video/quicktime',
@@ -543,11 +813,15 @@ class App extends Component {
 
     const responseData = await response.json();
 
+    this.setState({uploading: false});
+
     this.state.qr = responseData.videoPath;
 
     if (responseData.status == 'success') {
+      this.state.uploading = false;
       this.openQR();
     } else {
+      this.state.uploading = false;
       console.log(responseData);
       alert(responseData.status);
     }
@@ -558,7 +832,7 @@ class App extends Component {
   };
 
   scanVideo = async () => {
-    const auth_string = 'Bearer ' + this.state.token;
+    const auth_string = this.state.bearerToken;
 
     const requestOptions = {
       method: 'GET',
@@ -644,48 +918,49 @@ class App extends Component {
                   alignItems: 'center',
                   borderRadius: 5,
                 }}>
-                <TouchableOpacity>
-                  <Image
-                    source={require('./image/sopsimplelogo.png')}
-                    style={{
-                      maxWidth: '90%',
-                      maxHeight: '90%',
-                    }}
-                  />
-                </TouchableOpacity>
+                <Image
+                  source={require('./image/sopsimplelogo.png')}
+                  style={{
+                    maxWidth: '90%',
+                    maxHeight: '90%',
+                  }}
+                />
               </View>
-              <Text style={{marginLeft: '-57%', marginBottom: '-2%'}}>
-                Username
-              </Text>
+
+              <View style={{height: '8%'}}></View>
+
               <TextInput
                 style={styles.input}
-                placeholder={'OKAY'}
+                placeholder={'Username'}
+                placeholderTextColor="rgba(15,42,70,0.3)"
                 onChangeText={(value) => this.setState({username: value})}
                 value={this.state.username}></TextInput>
-              <Text style={{marginLeft: '-57%', marginBottom: '-2%'}}>
-                Password
-              </Text>
+
               <TextInput
                 style={styles.input}
+                placeholder={'Password'}
+                placeholderTextColor="rgba(15,42,70,0.3)"
                 secureTextEntry={true}
                 onChangeText={(value) => this.setState({password: value})}
                 value={this.state.password}></TextInput>
 
               <View
-                style={{height: '100%', width: '100%', alignItems: 'center'}}>
+                style={{
+                  width: '100%',
+                  height: '20%',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}>
                 <TouchableOpacity
-                  style={{
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    height: '10%',
-                    width: '80%',
-                    borderRadius: 30,
-                    backgroundColor: 'rgb(15, 42, 70)',
-                  }}
                   onPress={() => {
                     this.getToken();
                   }}>
-                  <Text style={{color: 'white'}}>Login</Text>
+                  <Image
+                    source={require('./image/loginlogoblue.png')}
+                    style={{
+                      maxHeight: '90%',
+                      maxWidth: '30%',
+                    }}></Image>
                 </TouchableOpacity>
               </View>
             </View>
@@ -716,7 +991,7 @@ class App extends Component {
                 </TouchableOpacity>
               </View>
 
-              <View style={{height: '15%'}}></View>
+              <View style={{height: '12%'}}></View>
 
               <View style={styles.buttonPlacement}>
                 <TouchableOpacity
@@ -755,8 +1030,7 @@ class App extends Component {
                 <TouchableOpacity
                   style={styles.startButtons}
                   onPress={() => {
-                    alert('Under construction!');
-                    //this.openMessages();
+                    this.getPlaylists();
                   }}>
                   <View style={{height: '29%'}}></View>
                   <Image
@@ -773,9 +1047,7 @@ class App extends Component {
                 <TouchableOpacity
                   style={styles.startButtons}
                   onPress={() => {
-                    //this.getToken();
                     this.openScanner();
-                    //Vibration.vibrate();
                   }}>
                   <Image
                     source={require('./image/scanlogoWHITE.png')}
@@ -787,21 +1059,198 @@ class App extends Component {
                   />
                 </TouchableOpacity>
               </View>
+            </View>
+          ) : null}
+
+          {this.state.playlistScreen ? (
+            <View style={{height: '100%', width: '100%', alignItems: 'center'}}>
+              <View style={{height: '3%'}}></View>
+
+              <View
+                style={{
+                  height: '10%',
+                  width: '85%',
+
+                  alignItems: 'center',
+                  borderRadius: 5,
+                }}>
+                <Image
+                  source={require('./image/sopsimplelogo.png')}
+                  style={{
+                    maxWidth: '90%',
+                    maxHeight: '90%',
+                  }}
+                />
+              </View>
+
+              <View style={{height: '6%'}}></View>
+
+              <View style={{height: '6%'}}>
+                <Text>
+                  {this.playliststuff.playlistpage} of{' '}
+                  {this.playliststuff.totalpages}
+                </Text>
+              </View>
 
               <View style={styles.buttonPlacement}>
-                <TouchableOpacity
-                  style={styles.startButtons}
-                  onPress={() => {
-                    alert('Under construction!');
-                    //this.openMessages();
-                  }}>
-                  <View style={{height: '29%'}}></View>
-                  <Image
-                    source={require('./image/messagelogoWHITE.png')}
-                    style={{maxWidth: '80%', maxHeight: '80%'}}></Image>
-                </TouchableOpacity>
-
+                {this.playliststuff.playlistbutton1 ? (
+                  <TouchableOpacity
+                    style={styles.startButtons}
+                    onPress={() => {
+                      this.openSelectedVideo(
+                        this.playliststuff.playlistURL[
+                          this.playliststuff.playliststart
+                        ],
+                      );
+                      this.openSelectedPlaylist(
+                        this.playliststuff.playlistURL[
+                          this.playliststuff.playliststart
+                        ],
+                      );
+                    }}>
+                    <Text style={{color: 'white'}}>
+                      {
+                        this.playliststuff.playlistTitle[
+                          this.playliststuff.playliststart
+                        ]
+                      }
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
                 <View style={{width: '10%'}} />
+                {this.playliststuff.playlistbutton2 ? (
+                  <TouchableOpacity
+                    style={styles.startButtons}
+                    onPress={() => {
+                      this.openSelectedVideo(
+                        this.playliststuff.playlistURL[
+                          this.playliststuff.playliststart
+                        ],
+                      );
+                      this.openSelectedPlaylist(
+                        this.playliststuff.playlistURL[
+                          this.playliststuff.playliststart + 1
+                        ],
+                      );
+                    }}>
+                    <Text style={{color: 'white'}}>
+                      {
+                        this.playliststuff.playlistTitle[
+                          this.playliststuff.playliststart + 1
+                        ]
+                      }
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+
+              <View style={styles.buttonPlacement}>
+                {this.playliststuff.playlistbutton3 ? (
+                  <TouchableOpacity
+                    style={styles.startButtons}
+                    onPress={() => {
+                      this.openSelectedVideo(
+                        this.playliststuff.playlistURL[
+                          this.playliststuff.playliststart
+                        ],
+                      );
+                      this.openSelectedPlaylist(
+                        this.playliststuff.playlistURL[
+                          this.playliststuff.playliststart + 2
+                        ],
+                      );
+                    }}>
+                    <Text style={{color: 'white'}}>
+                      {
+                        this.playliststuff.playlistTitle[
+                          this.playliststuff.playliststart + 2
+                        ]
+                      }
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
+                <View style={{width: '10%'}} />
+                {this.playliststuff.playlistbutton4 ? (
+                  <TouchableOpacity
+                    style={styles.startButtons}
+                    onPress={() => {
+                      this.openSelectedVideo(
+                        this.playliststuff.playlistURL[
+                          this.playliststuff.playliststart
+                        ],
+                      );
+                      this.openSelectedPlaylist(
+                        this.playliststuff.playlistURL[
+                          this.playliststuff.playliststart + 3
+                        ],
+                      );
+                    }}>
+                    <Text style={{color: 'white'}}>
+                      {
+                        this.playliststuff.playlistTitle[
+                          this.playliststuff.playliststart + 3
+                        ]
+                      }
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+
+              <View style={{height: '13%'}}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    width: '70%',
+                    justifyContent: 'space-between',
+                  }}>
+                  <TouchableOpacity
+                    style={styles.changePageButtons}
+                    onPress={() => {
+                      this.previousPlaylists();
+                    }}>
+                    <Text style={{color: 'white'}}>Previous</Text>
+                  </TouchableOpacity>
+
+                  <View style={{width: '18%'}} />
+
+                  <TouchableOpacity
+                    style={styles.changePageButtons}
+                    onPress={() => {
+                      this.nextPlaylists();
+                    }}>
+                    <Text style={{color: 'white'}}>Next</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.bottomNav}>
+                <TouchableOpacity
+                  style={styles.bottomNavButtons}
+                  onPress={() => this.openStart()}>
+                  <Image
+                    source={require('./image/backlogo.png')}
+                    style={{
+                      maxWidth: '90%',
+                      maxHeight: '90%',
+                      marginTop: '35%',
+                    }}
+                  />
+                </TouchableOpacity>
+                {this.playliststuff.inplaylist ? (
+                  <TouchableOpacity
+                    style={styles.bottomNavButtons}
+                    onPress={() => {
+                      this.getPlaylists();
+                    }}>
+                    <Image
+                      source={require('./image/videosicon.png')}
+                      style={{
+                        maxWidth: '80%',
+                        maxHeight: '80%',
+                        marginTop: '25%',
+                      }}></Image>
+                  </TouchableOpacity>
+                ) : null}
               </View>
             </View>
           ) : null}
@@ -841,6 +1290,8 @@ class App extends Component {
               style={{
                 height: '100%',
                 width: '100%',
+                justifyContent: 'flex-start',
+                alignItems: 'center',
               }}>
               <Video
                 source={{
@@ -855,12 +1306,20 @@ class App extends Component {
                 onBuffer={this.onBuffer}
                 onError={this.videoError}
                 style={{
-                  height: '70%',
+                  height: '80%',
                   width: '100%',
-                }}
-              />
+                  justifyContent: 'flex-end',
+                  alignItems: 'center',
+                }}>
+                <View
+                  style={{
+                    backgroundColor: 'white',
+                    height: '10%',
+                    width: '4%',
+                  }}></View>
+              </Video>
 
-              <View style={{height: '17%'}}></View>
+              <View style={{height: '2%'}}></View>
 
               <View style={styles.bottomNav}>
                 <TouchableOpacity
@@ -1025,6 +1484,71 @@ class App extends Component {
             </View>
           ) : null}
 
+          {this.state.playlistScreen2 ? (
+            <View
+              style={{
+                width: '100%',
+                height: '100%',
+                justifyContent: 'flex-start',
+                alignItems: 'center',
+              }}>
+              <View style={{height: '80%', width: '100%'}}>
+                <ScrollView
+                  style={{
+                    borderColor: 'black',
+                    borderWidth: 1,
+                  }}>
+                  <TouchableOpacity onPress={() => this.openSelectedPlaylist()}>
+                    <Text>{this.state.playlistTitle[0]}</Text>
+                  </TouchableOpacity>
+                </ScrollView>
+              </View>
+
+              <View style={{height: '2%'}}></View>
+
+              <View style={styles.bottomNav}>
+                <TouchableOpacity
+                  style={styles.bottomNavButtons}
+                  onPress={() => this.openStart()}>
+                  <Image
+                    source={require('./image/backlogo.png')}
+                    style={{
+                      maxWidth: '90%',
+                      maxHeight: '90%',
+                      marginTop: '35%',
+                    }}
+                  />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.bottomNavButtons}
+                  onPress={() => this.chooseVideoFromLibrary()}>
+                  <Image
+                    source={require('./image/camerarolllogoWHITE.png')}
+                    style={{
+                      maxWidth: '90%',
+                      maxHeight: '90%',
+                      marginTop: '35%',
+                    }}
+                  />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.bottomNavButtons}
+                  onPress={() => this.setTitle()}>
+                  <Image
+                    source={require('./image/sopsimpleqr.png')}
+                    style={{
+                      maxWidth: '70%',
+                      maxHeight: '70%',
+                      marginTop: '20%',
+                    }}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : null}
+
           {this.state.previewScreenFromRoll ? (
             <View
               style={{
@@ -1033,6 +1557,7 @@ class App extends Component {
                 justifyContent: 'flex-start',
                 alignItems: 'center',
               }}>
+              {this.state.uploading && <ActivityIndicator />}
               <Video
                 source={{uri: this.state.videoURI}} // Can be a URL or a local file.
                 ref={(ref) => {
@@ -1201,6 +1726,19 @@ class App extends Component {
               </View>
             </View>
           ) : null}
+
+          {this.state.uploading ? (
+            <View
+              style={{
+                justifyContent: 'center',
+                alignItems: 'center',
+                width: '100%',
+                height: '100%',
+              }}>
+              <ActivityIndicator></ActivityIndicator>
+              <Text>Uploading...</Text>
+            </View>
+          ) : null}
         </SafeAreaView>
       </>
     );
@@ -1211,20 +1749,22 @@ const styles = StyleSheet.create({
   input: {
     height: 40,
     margin: 12,
-    borderWidth: 1,
+    borderBottomWidth: 1,
     width: '80%',
     opacity: 1,
-    borderColor: 'rgb(15, 42, 70)',
-    borderRadius: 15,
+    //borderColor: 'rgb(15, 42, 70)',
+    //borderRadius: 15,
+    //backgroundColor: 'lightgrey',
+    //color: 'rgb(15, 42, 70)',
   },
 
-  bottomNav: {
-    //backgroundColor: 'rgb(230, 230, 235)',
-    flexDirection: 'row',
-    width: '100%',
-    height: '18%',
-    //alignItems: 'stretch',
-    justifyContent: 'space-between',
+  changePageButtons: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100%',
+    width: '45%',
+    borderRadius: 30,
+    backgroundColor: 'rgb(15, 42, 70)',
   },
 
   bottomNavButtons: {
@@ -1236,6 +1776,15 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+
+  bottomNav: {
+    //backgroundColor: 'rgb(230, 230, 235)',
+    flexDirection: 'row',
+    width: '100%',
+    height: '18%',
+    //alignItems: 'stretch',
+    justifyContent: 'space-between',
   },
 
   wholeScreen: {
